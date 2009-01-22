@@ -2,28 +2,51 @@
 
 (require "base.ss")
 
+; (struct)
+(define-struct data () #:transparent #:mutable)
+
 ; (struct symbol)
-(define-struct part (id) #:transparent #:mutable)
+(define-struct (package-part data) (id) #:transparent #:mutable)
 
 ; (struct symbol (listof worksheet))
-(define-struct (workbook part) (sheets) #:transparent #:mutable)
+(define-struct (workbook package-part) (sheets) #:transparent #:mutable)
 
-; (struct symbol (U string #f) (hasheqof natural (hasheqof natural cell)))
-(define-struct (worksheet part) (name data) #:transparent #:mutable)
+; (struct symbol (U string #f) range)
+(define-struct (worksheet package-part) (name data) #:transparent #:mutable)
 
-; (struct (U worksheet #f) (U natural #f) (U natural #f) any)
-(define-struct cell (sheet x y value) #:transparent #:mutable)
+; (struct)
+(define-struct (range data) () #:transparent #:mutable)
+
+; (struct any)
+(define-struct (cell range) (value) #:transparent #:mutable)
+
+; (struct (listof part) natural natural)
+(define-struct (union range) (parts width height) #:transparent)
+
+; (struct range natural natural)
+(define-struct (part data) (range dx dy) #:transparent)
 
 ; Provide statements -----------------------------
 
 (provide/contract
- [struct part             ([id     symbol?])]
- [struct (workbook part)  ([id     symbol?]
-                           [sheets (listof worksheet?)])]
- [struct (worksheet part) ([id     symbol?]
-                           [name   string?]
-                           [data   (and/c hash? hash-eq?)])]
- [struct cell             ([sheet  (or/c worksheet? #f)]
-                           [x      (or/c natural-number/c #f)]
-                           [y      (or/c natural-number/c #f)]
-                           [value  any/c])])
+ [struct data                     (#;[parent  (or/c data? #f)])]
+ [struct package-part             (#;[parent  (or/c data? #f)]
+                                   [id      symbol?])]
+ [struct (workbook package-part)  (#;[parent  #f]
+                                   [id      symbol?]
+                                   [sheets  (listof worksheet?)])]
+ [struct (worksheet package-part) (#;[parent  (or/c workbook? #f)]
+                                   [id      symbol?]
+                                   [name    string?]
+                                   [data    range?])]
+ [struct (range data)             (#;[parent  (or/c worksheet? range? #f)])]
+ [struct (cell range)             (#;[parent  (or/c worksheet? range? #f)]
+                                   [value   any/c])]
+ [struct (union range)            (#;[parent  (or/c worksheet? range? #f)]
+                                   [parts   (listof part?)]
+                                   [width   natural-number/c]
+                                   [height  natural-number/c])]
+ [struct (part data)              (#;[parent  (or/c union? #f)]
+                                   [range   range?]
+                                   [dx      natural-number/c]
+                                   [dy      natural-number/c])])

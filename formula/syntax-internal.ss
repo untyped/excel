@@ -10,30 +10,45 @@
                        "struct.ss"))
 
 ; syntax -> syntax
-(define (expand-formula stx)
-  (syntax-case* stx (!ref !range quote unquote) symbolic-identifier=?
-    [(!ref arg ...)                    #`(make-cell-reference arg ...)]
-    [(!range arg ...)                  #`(make-cell-range #,@(expand-args #'(arg ...)))]
-    [(unquote expr)                    #`(quote-formula expr)]
-    [(unquote arg ...)                 (raise-syntax-error #f "bad syntax" stx)]
-    ; Operators:
-    [(op arg ...)                  (operator-name? (syntax->datum #'op))
-                                   (if (operator-arity-okay? (syntax->datum #'op) (length (syntax->list #'(arg ...))))
-                                       #`(make-operator 'op (list #,@(expand-args #'(arg ...))))
-                                       (raise-syntax-error #f "wrong number of arguments" stx))]
-    [(quote arg)                   #'(quote arg)]
-    [(quote arg ...)               (raise-syntax-error #f "one argument only" stx)]
-    [(fn arg ...)                  (identifier? #'fn)
-                                   #`(make-function 'fn (list #,@(expand-args #'(arg ...))))]
-    [any                           (or (identifier? #'any) (literal-value? (syntax->datum #'any)))
-                                   #`(quote-argument any)]
-    [_                             (error (format "bad syntax: ~s" (syntax->datum stx)))]))
+(define (expand-expression stx)
+  (syntax-case* stx (!ref !range !array !apply !cond quote unquote) symbolic-identifier=?
+    [(!ref arg ...)              #`(make-cell-reference arg ...)]
+    [(!range arg ...)            #`(make-cell-range #,@(expand-args #'(arg ...)))]
+    [(!array arg ...)            #`(make-array #,@(expand-args #'(arg ...)))]
+    [(!apply op arg ...)         #`(apply #,@(syntax->list (expand-expression #'(op arg ...))))]
+    [(!cond [else arg])          (eq? (syntax->datum #'else) 'else)
+                                 (expand-expression #'arg)]
+    [(!cond [test0 arg0]
+            [test  arg] ...)     #`(if #,(expand-expression #'test0)
+                                       #,(expand-expression #'arg0)
+                                       #,(expand-expression #'(!cond [test arg] ...)))]
+    [(!cond arg ...)             (raise-syntax-error #f "bad syntax" stx)]
+    [(quote arg)                 #'(quote arg)]
+    [(quote arg ...)             (raise-syntax-error #f "one argument only" stx)]
+    [(unquote expr)              #'expr]
+    [(unquote arg ...)           (raise-syntax-error #f "bad syntax" stx)]
+    [(op arg ...)                (operator-name? (syntax->datum #'op))
+                                 (if (operator-arity-okay? (syntax->datum #'op) (length (syntax->list #'(arg ...))))
+                                     #`(make-operator 'op #,@(expand-args #'(arg ...)))
+                                     (raise-syntax-error #f "wrong number of arguments" stx))]
+    [(fn arg ...)                (identifier? #'fn)
+                                 (if (function-name? (syntax->datum #'fn))
+                                     #`(make-function 'fn #,@(expand-args #'(arg ...)))
+                                     (raise-syntax-error #f "bad function name" stx #'fn))]
+    [any                         (or (identifier? #'any) (literal-value? (syntax->datum #'any)))
+                                 #`any]
+    [_                           (error (format "bad syntax: ~s" (syntax->datum stx)))]))
 
 ; syntax -> (listof syntax)
 (define (expand-args stx)
-  (map expand-formula (syntax->list stx)))
+  (map expand-expression (syntax->list stx)))
+
+; any -> boolean
+(define (function-name? name)
+  (and (symbol? name)
+       (andmap char-alphabetic? (string->list (symbol->string name)))))
 
 ; Provide statements -----------------------------
 
 (provide/contract
- [expand-formula (-> syntax? syntax?)])
+ [expand-expression (-> syntax? syntax?)])

@@ -4,6 +4,7 @@
          scheme/file
          (planet untyped/unlib:3/file)
          "base.ss"
+         "cache.ss"
          "path.ss"
          "ref.ss"
          "struct.ss"
@@ -32,24 +33,20 @@
   (dynamic-wind
    void
    (lambda ()
-     (make-directory temp-dir)
-     (parameterize ([current-directory temp-dir])
-       (make-directory* (build-path "_rels"))
-       (make-directory* (build-path "xl/_rels"))
-       (make-directory* (build-path "xl/worksheets"))
-       (apply zip
-              zip-path
-              (write-xml-file (content-types-path)
-                              (content-types-xml book))
-              (write-xml-file (package-relationships-path)
-                              (package-relationships-xml book))
-              (write-xml-file (part-path book)
-                              (workbook-xml book))
-              (write-xml-file (workbook-relationships-path book)
-                              (workbook-relationships-xml book))
+     (let ([cache (make-cache book)])
+       (make-directory temp-dir)
+       (parameterize ([current-directory temp-dir])
+         (make-directory* (build-path "_rels"))
+         (make-directory* (build-path "xl/_rels"))
+         (make-directory* (build-path "xl/worksheets"))
+         (apply zip
+                zip-path
+                (write-xml-file (content-types-path) (content-types-xml book))
+                (write-xml-file (package-relationships-path) (package-relationships-xml book))
+                (write-xml-file (package-part-path book) (workbook-xml book))
+                (write-xml-file (workbook-relationships-path book) (workbook-relationships-xml book))
               (for/list ([sheet (in-list (workbook-sheets book))])
-                (write-xml-file (part-path sheet)
-                                (worksheet-xml sheet)))))
+                (write-xml-file (package-part-path sheet) (worksheet-xml cache sheet))))))
      (unless (file-exists? zip-path)
        (error "file was not created")))
    (lambda ()

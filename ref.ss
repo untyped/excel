@@ -14,7 +14,7 @@
 ; (U worksheet #f) natural natural [boolean] [boolean] -> string
 (define (sheet+xy->ref sheet x y [absolute-x? #f] [absolute-y? #f])
   (if sheet
-      (format "[~a]!~a" (worksheet-name sheet) (xy->ref x y absolute-x? absolute-y?))
+      (format "~a!~a" (worksheet-name sheet) (xy->ref x y absolute-x? absolute-y?))
       (xy->ref x y absolute-x? absolute-y?)))
 
 ; string -> natural natural
@@ -24,7 +24,7 @@
 
 ; string -> (U string #f) natural natural
 (define (ref->sheet+xy ref)
-  (match (regexp-match #rx"^(\\[([^\\]*)\\]!)?\\$?([a-zA-Z][a-zA-Z]*)[$]?([0-9][0-9]*)$" ref)
+  (match (regexp-match #rx"^(\\[?([^\\]*)\\]?!)?\\$?([a-zA-Z][a-zA-Z]*)[$]?([0-9][0-9]*)$" ref)
     [(list _ _ sheet col row)
      (values sheet (col->x col) (row->y row))]))
 

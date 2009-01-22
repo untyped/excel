@@ -1,6 +1,7 @@
 #lang scheme/base
 
 (require "base.ss"
+         "cache.ss"
          "path.ss"
          "ref.ss"
          "struct.ss"
@@ -36,7 +37,7 @@
        (Types (@ [xmlns ,content-types-namespace])
               (Default (@ [Extension "rels"] [ContentType ,package-relationships-content-type]))
               ,@(for/list ([part (in-list (cons book (workbook-sheets book)))])
-                  (xml (Override (@ [PartName     ,(path->string (part-path part #:absolute? #t))]
+                  (xml (Override (@ [PartName     ,(path->string (package-part-path part #:absolute? #t))]
                                     [ContentType  ,(match part
                                                      [(? workbook?)  workbook-content-type]
                                                      [(? worksheet?) worksheet-content-type])])))))))
@@ -45,9 +46,9 @@
 (define (package-relationships-xml book)
   (xml ,standalone-header-xml
        (Relationships (@ [xmlns ,package-relationships-namespace])
-                      (Relationship (@ [Id     ,(part-id book)]
+                      (Relationship (@ [Id     ,(package-part-id book)]
                                        [Type   ,office-document-relationship]
-                                       [Target ,(path->string (part-path book))])))))
+                                       [Target ,(path->string (package-part-path book))])))))
 
 ; workbook -> xml
 (define (workbook-xml book)
@@ -58,7 +59,7 @@
                                       [index (in-naturals 1)])
                              (xml (sheet (@ [name    ,(worksheet-name sheet)]
                                             [sheetId ,index]
-                                            [r:id    ,(part-id sheet)]))))))))
+                                            [r:id    ,(package-part-id sheet)]))))))))
 
 ; workbook -> xml
 (define workbook-relationships-xml
@@ -69,27 +70,39 @@
             (@ [xmlns ,package-relationships-namespace])
             ,@(for/list ([sheet (in-list (workbook-sheets book))])
                 (xml (Relationship
-                      (@ [Id     ,(part-id sheet)]
+                      (@ [Id     ,(package-part-id sheet)]
                          [Type   ,worksheet-namespace]
-                         [Target ,(path->string (part-path sheet #:relative-to xl-path))])))))))))
+                         [Target ,(path->string (package-part-path sheet #:relative-to xl-path))])))))))))
 
-(define (worksheet-xml sheet)
+; cache worksheet -> xml
+(define (worksheet-xml cache sheet)
   (xml ,standalone-header-xml
        (worksheet (@ [xmlns   ,spreadsheetml-namespace]
                      [xmlns:r ,workbook-namespace])
-                  (sheetData ,@(for/list ([y (in-list (worksheet-y-indices sheet))])
+                  (sheetData ,@(for/list ([item (in-list (cache-worksheet-data cache sheet))])
+                                 (define y (car item))
+                                 (define row (cdr item))
                                  (xml (row (@ [r ,(y->row y)])
-                                           ,@(for/list ([x (in-list (worksheet-x-indices sheet y))])
-                                               (let ([cell (worksheet-ref sheet x y)])
-                                                 (match (cell-value cell)
-                                                   [(? number? n)  (xml (c (@ [r ,(xy->ref x y)])
-                                                                           (v ,n)))]
-                                                   [(? boolean? b) (xml (c (@ [r ,(xy->ref x y)])
-                                                                           (v ,(if b "true" "false"))))]
-                                                   [(? string? s)  (xml (c (@ [r ,(xy->ref x y)] [t "inlineStr"])
-                                                                           (is (t ,s))))]
-                                                   [(? formula? f) (xml (c (@ [r ,(xy->ref x y)])
-                                                                           (f ,(formula->string sheet f))))]))))))))))
+                                           ,@(for/list ([item (in-list row)])
+                                               (define x (car item))
+                                               (define cell (cdr item))
+                                               (match (cell-value cell)
+                                                 [(? number? n)  (xml (c (@ [r ,(xy->ref x y)])
+                                                                         (v ,n)))]
+                                                 [#t             (xml (c (@ [r ,(xy->ref x y)] [t "b"])
+                                                                         (v 1)))]
+                                                 [(? string? s)  (xml (c (@ [r ,(xy->ref x y)] [t "inlineStr"])
+                                                                         (is (t ,s))))]
+                                                 [(? formula? f) (xml (c (@ [r ,(xy->ref x y)])
+                                                                         ,(formula-xml cache sheet cell f)))]
+                                                 [#f             (xml (c (@ [r ,(xy->ref x y)])))])))))))))
+
+; cache worksheet cell formula -> xml
+(define (formula-xml cache sheet cell formula)
+  (xml (f (@ ,@(if (formula-array? formula)
+                   (xml-attrs [t "array"] [aca "true"] [ref ,(cache-ref cache sheet cell)])
+                   (xml-attrs)))
+          ,(expression->string cache sheet (formula-expr formula)))))
 
 ; Provide statements -----------------------------
 
@@ -101,4 +114,4 @@
  [package-relationships-xml  (-> workbook? xml?)]
  [workbook-xml               (-> workbook? xml?)]
  [workbook-relationships-xml (-> workbook? xml?)]
- [worksheet-xml              (-> worksheet? xml?)])
+ [worksheet-xml              (-> cache? worksheet? xml?)])

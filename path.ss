@@ -33,12 +33,12 @@
                #:relative-to relative-to-path
                #:absolute?   absolute?))
 
-;  part
+;  package-part
 ;  [#:relative-to (U path #f)]
 ;  [#:absolute? boolean]
 ; ->
 ;  path
-(define (part-path part #:relative-to [relative-to-path #f] #:absolute? [absolute? #f])
+(define (package-part-path part #:relative-to [relative-to-path #f] #:absolute? [absolute? #f])
   (format-path (match part
                  [(? workbook? part)  (workbook-path part)]
                  [(? worksheet? part) (worksheet-path part)])
@@ -68,7 +68,7 @@
 
 ; worksheet -> relative-path
 (define (worksheet-path sheet)
-  (build-path "xl/worksheets" (format "~a.xml" (part-id sheet))))
+  (build-path "xl/worksheets" (format "~a.xml" (package-part-id sheet))))
 
 ; Provide statements -----------------------------
 
@@ -80,4 +80,4 @@
  [content-types-path          (->* () (#:relative-to (or/c relative-path/c #f) #:absolute? boolean?) path?)]
  [package-relationships-path  (->* () (#:relative-to (or/c relative-path/c #f) #:absolute? boolean?) path?)]
  [workbook-relationships-path (->* (workbook?) (#:relative-to (or/c relative-path/c #f) #:absolute? boolean?) path?)]
- [part-path                   (->* (part?) (#:relative-to (or/c relative-path/c #f) #:absolute? boolean?) path?)])
+ [package-part-path           (->* (package-part?) (#:relative-to (or/c relative-path/c #f) #:absolute? boolean?) path?)])
