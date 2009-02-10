@@ -1,12 +1,12 @@
 #lang scheme/base
 
 (require (planet untyped/unlib:3/hash)
-         "cache.ss"
+         "xml-cache.ss"
          "range.ss"
          "struct.ss"
          "test-base.ss")
 
-(require/expose "cache.ss"
+(require/expose "xml-cache.ss"
   (create-forward-lookup/book
    create-forward-lookup/sheet
    create-forward-lookup/range
@@ -19,7 +19,7 @@
 ; Tests ------------------------------------------
 
 (define cache-tests
-  (test-suite "cache.ss"
+  (test-suite "xml-cache.ss"
     
     (test-equal? "create-forward-lookup/range"
       (create-forward-lookup/range (hc-append a (vc-append b c d) e) 0 0)

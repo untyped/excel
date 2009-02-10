@@ -6,12 +6,14 @@
          "struct.ss")
 
 ; (struct (alistof string (alistof natural (alistof natural cell)))
-;         (hashof cell (list string natural natural)))
+;         (hashof cell (list string natural natural))
+;         (hashof (U style style-component) natural)
+;         (hashof cell natural))
 ;
 ; A cell cache containing two data structures that are used to render a workbook;
 ;   - a forward lookup optimised for iterating over the workbook;
 ;   - a reverse lookup optimised for random access, retrieving cell references.
-(define-struct cache (forward-lookup reverse-lookup) #:transparent)
+(define-struct cache (forward-lookup reverse-lookup style-lookup cell-style-lookup) #:transparent)
 
 ; Constructor ------------------------------------
 
@@ -19,7 +21,7 @@
 (define (create-cache book)
   (let* ([forward (create-forward-lookup/book book)]
          [reverse (create-reverse-lookup forward)])
-    (make-cache forward reverse)))
+    (make-cache forward reverse (make-hash) (make-hasheq))))
 
 ; cache worksheet -> (alistof natural (alistof natural cell))
 (define (cache-worksheet-data cache sheet)
@@ -91,6 +93,24 @@
                 (hash-set! ans cell (list sheet x y))))))))
     ans))
 
+; cache style [(U natural #f)] -> (U natural #f)
+(define cache-style-ref
+  (case-lambda
+    [(cache style)         (hash-ref (cache-style-lookup cache) style)]
+    [(cache style default) (hash-ref (cache-style-lookup cache) style default)]))
+
+; cache style natural -> void
+(define (cache-style-set! cache style val)
+  (hash-set! (cache-style-lookup cache) style val))
+
+; cache cell -> (U natural #f)
+(define (cache-cell-style-ref cache cell)
+ (hash-ref (cache-cell-style-lookup cache) cell #f))
+
+; cache style natural -> void
+(define (cache-cell-style-set! cache cell val)
+  (hash-set! (cache-cell-style-lookup cache) cell val))
+
 ; Provide statements -----------------------------
 
 (provide/contract
@@ -99,4 +119,8 @@
  [cache-forward-lookup           (-> cache? (or/c pair? null?))]
  [cache-reverse-lookup           (-> cache? hash?)]
  [cache-worksheet-data           (-> cache? worksheet? (or/c pair? null?))]
- [cache-ref                      (->* (cache? worksheet? cell?) (boolean? boolean?) string?)])
+ [cache-ref                      (->* (cache? worksheet? cell?) (boolean? boolean?) string?)]
+ [cache-style-ref                (->* (cache? any/c) ((or/c natural-number/c #f)) (or/c natural-number/c #f))]
+ [cache-style-set!               (-> cache? any/c natural-number/c void?)]
+ [cache-cell-style-ref           (-> cache? cell? (or/c natural-number/c #f))]
+ [cache-cell-style-set!          (-> cache? cell? natural-number/c void?)])

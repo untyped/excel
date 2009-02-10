@@ -20,28 +20,13 @@
   
 ; Range wrappers ---------------------------------
 
-; range -> worksheet
-#;(define (range-sheet range)
-  (let ([parent (data-parent range)])
-    (cond [(not parent)        (error "range does not have a parent" range)]
-          [(worksheet? parent) parent]
-          [else                (range-sheet parent)])))
+; (listof part) natural natural [#:style style] -> union
+(define (create-union parts x y [style #f])
+  (make-union style parts x y))
 
-; range -> natural
-#;(define (range-x range [accum 0])
-  (let ([parent (data-parent range)])
-    (cond [(not parent)        (error "range does not have a parent" range)]
-          [(worksheet? parent) accum]
-          [(part? parent)      (range-x parent (+ accum (part-dx parent)))]
-          [else                (range-x parent accum)])))
-
-; range -> natural
-#;(define (range-y range [accum 0])
-  (let ([parent (data-parent range)])
-    (cond [(not parent)        (error "range does not have a parent" range)]
-          [(worksheet? parent) accum]
-          [(part? parent)      (range-y parent (+ accum (part-dy parent)))]
-          [else                (range-y parent accum)])))
+; any [#:style (U style #f)] -> cell
+(define (create-cell val [style #f])
+  (make-cell style val))
 
 ; range -> natural
 (define (range-width range)
@@ -55,19 +40,48 @@
       (union-height range)
       1))
 
+; range -> (listof range)
+(define (range-children range)
+  (if (cell? range)
+      null
+      (for/list ([part (in-list (union-parts range))])
+        (part-range part))))
+
+; Styles -----------------------------------------
+
+; style -> boolean
+(define (style-empty? style)
+  (and (not (style-number-format style))))
+
+; style (U style #f) -> style
+(define (style-compose style1 style2)
+  (if style2
+      (make-style (or (style-number-format style2)
+                      (style-number-format style1)))
+      style1))
+
+; Built-in styles and style components -----------
+
+(define general-number-format (make-number-format #f))
+
 ; Provide statements -----------------------------
 
 (provide (except-out (all-from-out "struct-internal.ss")
                      make-workbook
-                     make-worksheet))
+                     make-worksheet
+                     make-union
+                     make-cell))
 
 (define nat/c natural-number/c)
 
 (provide/contract
  [rename create-workbook  make-workbook  (->* () (#:id symbol? (listof worksheet?)) workbook?)]
  [rename create-worksheet make-worksheet (->* (string? range?) (#:id symbol?) worksheet?)]
- #;[range-sheet                            (-> range? worksheet?)]
- #;[range-x                                (-> range? nat/c)]
- #;[range-y                                (-> range? nat/c)]
+ [rename create-union     make-union     (->* ((listof part?) nat/c nat/c) ((or/c style? #f)) union?)]
+ [rename create-cell      make-cell      (->* (any/c) ((or/c style? #f)) cell?)]
+ [range-children                         (-> range? (listof range?))]
  [range-width                            (-> range? nat/c)]
- [range-height                           (-> range? nat/c)])
+ [range-height                           (-> range? nat/c)]
+ [style-empty?                           (-> style? boolean?)]
+ [style-compose                          (-> style? (or/c style? #f) style?)]
+ [general-number-format                  number-format?])

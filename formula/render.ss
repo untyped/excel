@@ -2,7 +2,7 @@
 
 (require scheme/port
          "../base.ss"
-         "../cache.ss"
+         "../xml-cache.ss"
          "../ref.ss"
          "../struct.ss"
          "op.ss"

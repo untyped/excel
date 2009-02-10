@@ -14,39 +14,44 @@
 ; (struct symbol (U string #f) range)
 (define-struct (worksheet package-part) (name data) #:transparent #:mutable)
 
-; (struct)
-(define-struct (range data) () #:transparent #:mutable)
+; (struct (U style #f))
+(define-struct (range data) (style) #:transparent #:mutable)
 
-; (struct any)
+; (struct (listof style) any)
 (define-struct (cell range) (value) #:transparent #:mutable)
 
-; (struct (listof part) natural natural)
+; (struct (listof style) (listof part) natural natural)
 (define-struct (union range) (parts width height) #:transparent)
 
 ; (struct range natural natural)
 (define-struct (part data) (range dx dy) #:transparent)
 
+; (struct (U string #f))
+; A code of #f means "general" formatting.
+(define-struct number-format (code) #:transparent)
+
+; (struct (U number-format #f))
+(define-struct style (number-format) #:transparent)
+
 ; Provide statements -----------------------------
 
 (provide/contract
- [struct data                     (#;[parent  (or/c data? #f)])]
- [struct package-part             (#;[parent  (or/c data? #f)]
-                                   [id      symbol?])]
- [struct (workbook package-part)  (#;[parent  #f]
-                                   [id      symbol?]
-                                   [sheets  (listof worksheet?)])]
- [struct (worksheet package-part) (#;[parent  (or/c workbook? #f)]
-                                   [id      symbol?]
-                                   [name    string?]
-                                   [data    range?])]
- [struct (range data)             (#;[parent  (or/c worksheet? range? #f)])]
- [struct (cell range)             (#;[parent  (or/c worksheet? range? #f)]
-                                   [value   any/c])]
- [struct (union range)            (#;[parent  (or/c worksheet? range? #f)]
-                                   [parts   (listof part?)]
-                                   [width   natural-number/c]
-                                   [height  natural-number/c])]
- [struct (part data)              (#;[parent  (or/c union? #f)]
-                                   [range   range?]
-                                   [dx      natural-number/c]
-                                   [dy      natural-number/c])])
+ [struct data                     ()]
+ [struct package-part             ([id            symbol?])]
+ [struct (workbook package-part)  ([id            symbol?]
+                                   [sheets        (listof worksheet?)])]
+ [struct (worksheet package-part) ([id            symbol?]
+                                   [name          string?]
+                                   [data          range?])]
+ [struct (range data)             ([style         (or/c style? #f)])]
+ [struct (cell range)             ([style         (or/c style? #f)]
+                                   [value         any/c])]
+ [struct (union range)            ([style         (or/c style? #f)]
+                                   [parts         (listof part?)]
+                                   [width         natural-number/c]
+                                   [height        natural-number/c])]
+ [struct (part data)              ([range         range?]
+                                   [dx            natural-number/c]
+                                   [dy            natural-number/c])]
+ [struct number-format            ([code          (or/c string? #f)])]
+ [struct style                    ([number-format (or/c number-format? #f)])])

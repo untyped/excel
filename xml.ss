@@ -1,15 +1,21 @@
 #lang scheme/base
 
 (require "base.ss"
-         "cache.ss"
+         "xml-cache.ss"
          "path.ss"
          "ref.ss"
          "struct.ss"
+         "xml-number-format.ss"
+         "xml-style.ss"
          "formula/formula.ss")
 
 ; xml
 (define standalone-header-xml
   (xml (!raw "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>")))
+
+; Reversed part IDs ------------------------------
+
+(define workbook-styles-part-id            "stylesPart")
 
 ; Namespaces -------------------------------------
 
@@ -18,12 +24,14 @@
 (define spreadsheetml-namespace            "http://schemas.openxmlformats.org/spreadsheetml/2006/main")
 (define workbook-namespace                 "http://schemas.openxmlformats.org/officeDocument/2006/relationships")
 (define worksheet-namespace                "http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet")
+(define workbook-styles-namespace          "http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles")
 
 ; Content types ----------------------------------
 
 (define package-relationships-content-type "application/vnd.openxmlformats-package.relationships+xml")
 (define workbook-content-type              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml")
 (define worksheet-content-type             "application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml")
+(define workbook-styles-content-type       "application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml")
 
 ; Relationships ----------------------------------
 
@@ -35,7 +43,10 @@
 (define (content-types-xml book)
   (xml ,standalone-header-xml
        (Types (@ [xmlns ,content-types-namespace])
-              (Default (@ [Extension "rels"] [ContentType ,package-relationships-content-type]))
+              (Default  (@ [Extension "rels"]
+                           [ContentType ,package-relationships-content-type]))
+              (Override (@ [PartName "/xl/styles.xml"]
+                           [ContentType ,workbook-styles-content-type]))
               ,@(for/list ([part (in-list (cons book (workbook-sheets book)))])
                   (xml (Override (@ [PartName     ,(path->string (package-part-path part #:absolute? #t))]
                                     [ContentType  ,(match part
@@ -68,11 +79,35 @@
       (xml ,standalone-header-xml
            (Relationships
             (@ [xmlns ,package-relationships-namespace])
+            (Relationship (@ [Id     ,workbook-styles-part-id]
+                             [Type   ,workbook-styles-namespace]
+                             [Target "styles.xml"]))
             ,@(for/list ([sheet (in-list (workbook-sheets book))])
                 (xml (Relationship
                       (@ [Id     ,(package-part-id sheet)]
                          [Type   ,worksheet-namespace]
                          [Target ,(path->string (package-part-path sheet #:relative-to xl-path))])))))))))
+
+; cache workbook -> xml
+(define (workbook-styles-xml cache book)
+  (let* ([number-formats-xml (number-formats-xml! cache book)]
+         [cell-styles-xml    (styles-xml! cache book)])
+    (xml ,standalone-header-xml
+         (styleSheet (@ [xmlns ,spreadsheetml-namespace])
+                     ,number-formats-xml
+                     (fonts (@ [count 1])
+                            (font))
+                     (fills (@ [count 1])
+                            (fill))
+                     (borders (@ [count 1])
+                              (border))
+                     #;(cellStyleXfs (@ [count 0]))
+                     ,cell-styles-xml
+                     #;(cellStyles (@ [count 0]))
+                     #;(dxfs (@ [count 0]))
+                     #;(tableStyles (@ [count 0]))
+                     #;(colors (@ [count 0]))
+                     #;(extLst (@ [count 0]))))))
 
 ; cache worksheet -> xml
 (define (worksheet-xml cache sheet)
@@ -86,16 +121,18 @@
                                            ,@(for/list ([item (in-list row)])
                                                (define x (car item))
                                                (define cell (cdr item))
+                                               (define style (cache-cell-style-ref cache cell))
                                                (match (cell-value cell)
-                                                 [(? number? n)  (xml (c (@ [r ,(xy->ref x y)])
-                                                                         (v ,n)))]
-                                                 [#t             (xml (c (@ [r ,(xy->ref x y)] [t "b"])
-                                                                         (v 1)))]
-                                                 [(? string? s)  (xml (c (@ [r ,(xy->ref x y)] [t "inlineStr"])
-                                                                         (is (t ,s))))]
-                                                 [(? formula? f) (xml (c (@ [r ,(xy->ref x y)])
-                                                                         ,(formula-xml cache sheet cell f)))]
-                                                 [#f             (xml (c (@ [r ,(xy->ref x y)])))])))))))))
+                                                 [(? number? n)      (xml (c (@ [r ,(xy->ref x y)] ,(opt-xml-attr style s style))
+                                                                             (v ,n)))]
+                                                 [#t                 (xml (c (@ [r ,(xy->ref x y)] ,(opt-xml-attr style s style) [t "b"])
+                                                                             (v 1)))]
+                                                 [(or (? string? s)
+                                                      (? symbol? s)) (xml (c (@ [r ,(xy->ref x y)] ,(opt-xml-attr style s style) [t "inlineStr"])
+                                                                             (is (t ,s))))]
+                                                 [(? formula? f)     (xml (c (@ [r ,(xy->ref x y)] ,(opt-xml-attr style s style))
+                                                                             ,(formula-xml cache sheet cell f)))]
+                                                 [#f                 (xml (c (@ [r ,(xy->ref x y)] ,(opt-xml-attr style s style))))])))))))))
 
 ; cache worksheet cell formula -> xml
 (define (formula-xml cache sheet cell formula)
@@ -114,4 +151,5 @@
  [package-relationships-xml  (-> workbook? xml?)]
  [workbook-xml               (-> workbook? xml?)]
  [workbook-relationships-xml (-> workbook? xml?)]
+ [workbook-styles-xml        (-> cache? workbook? xml?)]
  [worksheet-xml              (-> cache? worksheet? xml?)])
