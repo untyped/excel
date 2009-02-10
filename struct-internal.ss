@@ -1,6 +1,7 @@
 #lang scheme/base
 
-(require "base.ss")
+(require "base.ss"
+         "struct-style-internal.ss")
 
 ; (struct)
 (define-struct data () #:transparent #:mutable)
@@ -26,13 +27,6 @@
 ; (struct range natural natural)
 (define-struct (part data) (range dx dy) #:transparent)
 
-; (struct (U string #f))
-; A code of #f means "general" formatting.
-(define-struct number-format (code) #:transparent)
-
-; (struct (U number-format #f))
-(define-struct style (number-format) #:transparent)
-
 ; Provide statements -----------------------------
 
 (provide/contract
@@ -52,6 +46,4 @@
                                    [height        natural-number/c])]
  [struct (part data)              ([range         range?]
                                    [dx            natural-number/c]
-                                   [dy            natural-number/c])]
- [struct number-format            ([code          (or/c string? #f)])]
- [struct style                    ([number-format (or/c number-format? #f)])])
+                                   [dy            natural-number/c])])

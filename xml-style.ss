@@ -9,7 +9,7 @@
 
 ; cache workbook -> listof xml
 (define (styles-xml! cache book)
-  (let* ([initial-style (make-style #f)]
+  (let* ([initial-style (make-style)]
          [next-pos      (make-counter 0)]
          [elements      (apply append (for/list ([sheet (in-list (workbook-sheets book))])
                                         (styles-xml/internal! cache (worksheet-data sheet) initial-style next-pos)))])
@@ -25,12 +25,16 @@
   
   ; (U xml #f)
   (define current-xml
-    (cond [(style-empty? style)             #f]
-          [(cache-style-ref cache style #f) #f]
+    (cond [(cache-style-ref cache style #f) #f]
           [else (let* ([pos      (next-pos)]
                        [fmt      (style-number-format style)]
-                       [numFmtId (and fmt (cache-style-ref cache fmt))]
-                       [fontId   #f]
+                       [font     (style-font style)]
+                       [numFmtId (and fmt
+                                      (not (number-format-empty? fmt))
+                                      (cache-style-ref cache fmt))]
+                       [fontId   (and font
+                                      (not (font-empty? font))
+                                      (cache-style-ref cache font))]
                        [fillId   #f]
                        [borderId #f])
                   (cache-style-set! cache style pos)

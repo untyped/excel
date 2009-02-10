@@ -5,6 +5,7 @@
          "path.ss"
          "ref.ss"
          "struct.ss"
+         "xml-font.ss"
          "xml-number-format.ss"
          "xml-style.ss"
          "formula/formula.ss")
@@ -91,12 +92,12 @@
 ; cache workbook -> xml
 (define (workbook-styles-xml cache book)
   (let* ([number-formats-xml (number-formats-xml! cache book)]
+         [fonts-xml          (fonts-xml! cache book)]
          [cell-styles-xml    (styles-xml! cache book)])
     (xml ,standalone-header-xml
          (styleSheet (@ [xmlns ,spreadsheetml-namespace])
                      ,number-formats-xml
-                     (fonts (@ [count 1])
-                            (font))
+                     ,fonts-xml
                      (fills (@ [count 1])
                             (fill))
                      (borders (@ [count 1])

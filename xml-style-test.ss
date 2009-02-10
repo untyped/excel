@@ -4,6 +4,7 @@
          "range.ss"
          "struct.ss"
          "test-base.ss"
+         "xml-font.ss"
          "xml-number-format.ss"
          "xml-style.ss")
 
@@ -13,9 +14,9 @@
 (define fmt2 (make-number-format "0"))
 (define fmt3 (make-number-format "0.00"))
 
-(define style1 (make-style fmt1))
-(define style2 (make-style fmt2))
-(define style3 (make-style fmt3))
+(define style1 (make-style #:number-format fmt1))
+(define style2 (make-style #:number-format fmt2))
+(define style3 (make-style #:number-format fmt3))
 
 (define a1 (make-cell "A1"))
 (define a2 (make-cell "A2"))
@@ -45,8 +46,8 @@
       
       (define data
         (begin
-          ; Store number formats for cache:
           (number-formats-xml! cache book)
+          (fonts-xml! cache book)
           (styles-xml! cache book)))
       
       (check-eq? (cache-style-ref cache style1) 0)
@@ -55,7 +56,8 @@
       
       (check-equal?
        (xml->string data)
-       (xml->string (xml (cellStyleXfs (@ [count 3])
+       (xml->string (xml (cellStyleXfs (@ [count 4])
+                                       (xf)
                                        (xf (@ [numFmtId 0]))
                                        (xf (@ [numFmtId 100]))
                                        (xf (@ [numFmtId 101]))))))
