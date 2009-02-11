@@ -133,7 +133,23 @@
                                                                              (is (t ,s))))]
                                                  [(? formula? f)     (xml (c (@ [r ,(xy->ref x y)] ,(opt-xml-attr style s style))
                                                                              ,(formula-xml cache sheet cell f)))]
-                                                 [#f                 (xml (c (@ [r ,(xy->ref x y)] ,(opt-xml-attr style s style))))])))))))))
+                                                 [#f                 (xml (c (@ [r ,(xy->ref x y)] ,(opt-xml-attr style s style))))]))))))
+                  (sheetProtection (@ [autoFilter          ,(if (worksheet-auto-filter-lock?             sheet) "true" "false")]
+                                      [deleteColumns       ,(if (worksheet-delete-columns-lock?          sheet) "true" "false")]
+                                      [deleteRows          ,(if (worksheet-delete-rows-lock?             sheet) "true" "false")]
+                                      [formatCells         ,(if (worksheet-format-cells-lock?            sheet) "true" "false")]
+                                      [formatColumns       ,(if (worksheet-format-columns-lock?          sheet) "true" "false")]
+                                      [formatRows          ,(if (worksheet-format-rows-lock?             sheet) "true" "false")]
+                                      [insertColumns       ,(if (worksheet-insert-columns-lock?          sheet) "true" "false")]
+                                      [insertHyperlinks    ,(if (worksheet-insert-hyperlinks-lock?       sheet) "true" "false")]
+                                      [insertRows          ,(if (worksheet-insert-rows-lock?             sheet) "true" "false")]
+                                      [objects             ,(if (worksheet-objects-lock?                 sheet) "true" "false")]
+                                      [pivotTables         ,(if (worksheet-pivot-tables-lock?            sheet) "true" "false")]
+                                      [scenarios           ,(if (worksheet-scenarios-lock?               sheet) "true" "false")]
+                                      [selectLockedCells   ,(if (worksheet-locked-cell-selection-lock?   sheet) "true" "false")]
+                                      [selectUnlockedCells ,(if (worksheet-unlocked-cell-selection-lock? sheet) "true" "false")]
+                                      [sheet               ,(if (worksheet-sheet-lock?                   sheet) "true" "false")]
+                                      [sort                ,(if (worksheet-sort-lock?                    sheet) "true" "false")])))))
 
 ; cache worksheet cell formula -> xml
 (define (formula-xml cache sheet cell formula)

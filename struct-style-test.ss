@@ -59,7 +59,9 @@
       (check-true  (style-empty? (make-style #:number-format (make-number-format #f))))
       (check-false (style-empty? (make-style #:number-format (make-number-format "0"))))
       (check-true  (style-empty? (make-style #:font (make-font #:name #f))))
-      (check-false (style-empty? (make-style #:font (make-font #:name "Dave")))))
+      (check-false (style-empty? (make-style #:font (make-font #:name "Dave"))))
+      (check-false (style-empty? (make-style #:hidden? #f)))
+      (check-false (style-empty? (make-style #:locked? #f))))
     
     (test-case "style-compose"
       (let ([fmt1  (make-number-format #f)]
@@ -68,8 +70,11 @@
             [font2 (make-font #:name "David")])
         (check-equal? (style-compose (make-style #:number-format fmt1
                                                  #:font          font1)
-                                     (make-style #:number-format fmt2))
-                      (make-style #:number-format fmt2 #:font font1))
+                                     (make-style #:number-format fmt2
+                                                 #:hidden?       #f))
+                      (make-style #:number-format fmt2
+                                  #:font font1
+                                  #:hidden? #f))
         (check-equal? (style-compose (make-style) (make-style #:number-format fmt2))
                       (make-style #:number-format fmt2))
         (check-equal? (style-compose (make-style #:number-format fmt1) (make-style))

@@ -7,7 +7,8 @@
 (define-struct color (r g b a) #:transparent)
 
 ; (struct (U string #f))
-; A code of #f means "general" formatting.
+; A code of #f means no formatting (will not override other formats when composing).
+; A code of "" means "general" formatting (will override other formats when composing).
 (define-struct number-format (code) #:transparent)
 
 ; (struct (U string #f)
@@ -23,8 +24,8 @@
   (name size color bold-raw italic-raw underline-raw outline-raw shadow-raw strike-raw superscript-raw subscript-raw)
   #:transparent)
 
-; (struct (U number-format #f) (U font #f))
-(define-struct style (number-format font) #:transparent)
+; (struct (U number-format #f) (U font #f) (U boolean void) (U boolean void))
+(define-struct style (number-format font hidden-raw locked-raw) #:transparent)
 
 ; Provide statements -----------------------------
 
@@ -46,4 +47,6 @@
                                    [superscript-raw (or/c boolean? void?)]
                                    [subscript-raw   (or/c boolean? void?)])]
  [struct style                    ([number-format   (or/c number-format? #f)]
-                                   [font            (or/c font? #f)])])
+                                   [font            (or/c font? #f)]
+                                   [hidden-raw      (or/c boolean? void?)]
+                                   [locked-raw      (or/c boolean? void?)])])

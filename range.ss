@@ -6,8 +6,8 @@
 
 ; Procedures -------------------------------------
 
-; (U range quotable) ... [#:style (U style #f)] -> union
-(define (hc-append #:style [style #f] . ranges)
+; (U range quotable) ... [#:style style] -> union
+(define (hc-append #:style [style empty-style] . ranges)
   (let* ([ranges         (map quote-range ranges)]
          [overall-width  (apply + (map range-width ranges))]
          [overall-height (apply max (map range-height ranges))])
@@ -20,8 +20,8 @@
                 overall-height
                 style)))
 
-; (U range quotable) ... [#:style (U style #f)] -> union
-(define (ht-append #:style [style #f] . ranges)
+; (U range quotable) ... [#:style style] -> union
+(define (ht-append #:style [style empty-style] . ranges)
   (let* ([ranges         (map quote-range ranges)]
          [overall-width  (apply + (map range-width ranges))]
          [overall-height (apply max (map range-height ranges))])
@@ -34,8 +34,8 @@
                 overall-height
                 style)))
 
-; (U range quotable) ... [#:style (U style #f)] -> union
-(define (hb-append #:style [style #f] . ranges)
+; (U range quotable) ... [#:style style] -> union
+(define (hb-append #:style [style empty-style] . ranges)
   (let* ([ranges         (map quote-range ranges)]
          [overall-width  (apply + (map range-width ranges))]
          [overall-height (apply max (map range-height ranges))])
@@ -48,8 +48,8 @@
                 overall-height
                 style)))
 
-; (U range quotable) ... [#:style (U style #f)] -> union
-(define (vc-append #:style [style #f] . ranges)
+; (U range quotable) ... [#:style style] -> union
+(define (vc-append #:style [style empty-style] . ranges)
   (let* ([ranges         (map quote-range ranges)]
          [overall-width  (apply max (map range-width ranges))]
          [overall-height (apply + (map range-height ranges))])
@@ -62,8 +62,8 @@
                 overall-height
                 style)))
 
-; (U range quotable) ... [#:style (U style #f)] -> union
-(define (vl-append #:style [style #f] . ranges)
+; (U range quotable) ... [#:style style] -> union
+(define (vl-append #:style [style empty-style] . ranges)
   (let* ([ranges         (map quote-range ranges)]
          [overall-width  (apply max (map range-width ranges))]
          [overall-height (apply + (map range-height ranges))])
@@ -76,8 +76,8 @@
                 overall-height
                 style)))
 
-; (U range quotable) ... [#:style (U style #f)] -> union
-(define (vr-append #:style [style #f] . ranges)
+; (U range quotable) ... [#:style style] -> union
+(define (vr-append #:style [style empty-style] . ranges)
   (let* ([ranges         (map quote-range ranges)]
          [overall-width  (apply max (map range-width ranges))]
          [overall-height (apply + (map range-height ranges))])
@@ -90,39 +90,39 @@
                 overall-height
                 style)))
 
-; (U range quotable) [natural] [#:style (U style #f)] -> range
-(define (l-pad range [num 1] #:style [style #f])
+; (U range quotable) [natural] [#:style style] -> range
+(define (l-pad range [num 1] #:style [style empty-style])
   (let ([range (quote-range range)])
     (make-union (list (make-part range num 0))
                 (+ (range-width range) num)
                 (range-height range))))
 
-; (U range quotable) [natural] [#:style (U style #f)] -> range
-(define (r-pad range [num 1] #:style [style #f])
+; (U range quotable) [natural] [#:style style] -> range
+(define (r-pad range [num 1] #:style [style empty-style])
   (let ([range (quote-range range)])
     (make-union (list (make-part range 0 0))
                 (+ (range-width range) num)
                 (range-height range)
                 style)))
 
-; (U range quotable) [natural] [#:style (U style #f)] -> range
-(define (t-pad range [num 1] #:style [style #f])
+; (U range quotable) [natural] [#:style style] -> range
+(define (t-pad range [num 1] #:style [style empty-style])
   (let ([range (quote-range range)])
     (make-union (list (make-part range 0 num))
                 (range-width range)
                 (+ (range-height range) num)
                 style)))
 
-; (U range quotable) [natural] [#:style (U style #f)] -> range
-(define (b-pad range [num 1] #:style [style #f])
+; (U range quotable) [natural] [#:style style] -> range
+(define (b-pad range [num 1] #:style [style empty-style])
   (let ([range (quote-range range)])
     (make-union (list (make-part range 0 0))
                 (range-width range)
                 (+ (range-height range) num)
                 style)))
 
-; range (U style #f) -> range
-(define (apply-styles range style)
+; range style -> range
+(define (apply-style range style)
   (if style
       (make-union (list (make-part range 0 0))
                   (range-width range)
@@ -169,14 +169,14 @@
 ; Provide statements -----------------------------
 
 (provide/contract
- [hc-append    (->* () (#:style (or/c style? #f)) #:rest (listof range+quotable?) union?)]
- [ht-append    (->* () (#:style (or/c style? #f)) #:rest (listof range+quotable?) union?)]
- [hb-append    (->* () (#:style (or/c style? #f)) #:rest (listof range+quotable?) union?)]
- [vc-append    (->* () (#:style (or/c style? #f)) #:rest (listof range+quotable?) union?)]
- [vl-append    (->* () (#:style (or/c style? #f)) #:rest (listof range+quotable?) union?)]
- [vr-append    (->* () (#:style (or/c style? #f)) #:rest (listof range+quotable?) union?)]
- [l-pad        (->* (range+quotable?) (natural-number/c #:style (or/c style? #f)) range?)]
- [r-pad        (->* (range+quotable?) (natural-number/c #:style (or/c style? #f)) range?)]
- [t-pad        (->* (range+quotable?) (natural-number/c #:style (or/c style? #f)) range?)]
- [b-pad        (->* (range+quotable?) (natural-number/c #:style (or/c style? #f)) range?)]
- [apply-styles (-> range? (or/c style? #f) range?)])
+ [hc-append   (->* () (#:style style?) #:rest (listof range+quotable?) union?)]
+ [ht-append   (->* () (#:style style?) #:rest (listof range+quotable?) union?)]
+ [hb-append   (->* () (#:style style?) #:rest (listof range+quotable?) union?)]
+ [vc-append   (->* () (#:style style?) #:rest (listof range+quotable?) union?)]
+ [vl-append   (->* () (#:style style?) #:rest (listof range+quotable?) union?)]
+ [vr-append   (->* () (#:style style?) #:rest (listof range+quotable?) union?)]
+ [l-pad       (->* (range+quotable?) (natural-number/c #:style style?) range?)]
+ [r-pad       (->* (range+quotable?) (natural-number/c #:style style?) range?)]
+ [t-pad       (->* (range+quotable?) (natural-number/c #:style style?) range?)]
+ [b-pad       (->* (range+quotable?) (natural-number/c #:style style?) range?)]
+ [apply-style (-> range? style? range?)])

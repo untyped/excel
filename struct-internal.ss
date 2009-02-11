@@ -13,7 +13,26 @@
 (define-struct (workbook package-part) (sheets) #:transparent #:mutable)
 
 ; (struct symbol (U string #f) range)
-(define-struct (worksheet package-part) (name data) #:transparent #:mutable)
+(define-struct (worksheet package-part)
+  (name
+   data
+   auto-filter-lock?
+   delete-columns-lock?
+   delete-rows-lock?
+   format-cells-lock?
+   format-columns-lock?
+   format-rows-lock?
+   insert-columns-lock?
+   insert-hyperlinks-lock?
+   insert-rows-lock?
+   objects-lock?
+   pivot-tables-lock?
+   scenarios-lock?
+   locked-cell-selection-lock?
+   unlocked-cell-selection-lock?
+   sheet-lock?
+   sort-lock?)
+  #:transparent #:mutable)
 
 ; (struct (U style #f))
 (define-struct (range data) (style) #:transparent #:mutable)
@@ -36,11 +55,27 @@
                                    [sheets        (listof worksheet?)])]
  [struct (worksheet package-part) ([id            symbol?]
                                    [name          string?]
-                                   [data          range?])]
- [struct (range data)             ([style         (or/c style? #f)])]
- [struct (cell range)             ([style         (or/c style? #f)]
+                                   [data          range?]
+                                   [auto-filter-lock? boolean?]
+                                   [delete-columns-lock? boolean?]
+                                   [delete-rows-lock? boolean?]
+                                   [format-cells-lock? boolean?]
+                                   [format-columns-lock? boolean?]
+                                   [format-rows-lock? boolean?]
+                                   [insert-columns-lock? boolean?]
+                                   [insert-hyperlinks-lock? boolean?]
+                                   [insert-rows-lock? boolean?]
+                                   [objects-lock? boolean?]
+                                   [pivot-tables-lock? boolean?]
+                                   [scenarios-lock? boolean?]
+                                   [locked-cell-selection-lock? boolean?]
+                                   [unlocked-cell-selection-lock? boolean?]
+                                   [sheet-lock?   boolean?]
+                                   [sort-lock?    boolean?])]
+ [struct (range data)             ([style         style?])]
+ [struct (cell range)             ([style         style?]
                                    [value         any/c])]
- [struct (union range)            ([style         (or/c style? #f)]
+ [struct (union range)            ([style         style?]
                                    [parts         (listof part?)]
                                    [width         natural-number/c]
                                    [height        natural-number/c])]

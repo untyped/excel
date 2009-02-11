@@ -14,7 +14,7 @@
          [elements      (apply append (for/list ([sheet (in-list (workbook-sheets book))])
                                         (styles-xml/internal! cache (worksheet-data sheet) initial-style next-pos)))])
     (xml (cellXfs (@ [count ,(length elements)])
-                       ,@elements))))
+                  ,@elements))))
 
 ; cache range (-> natural) -> (listof xml)
 (define (styles-xml/internal! cache range parent-style next-pos)
@@ -26,22 +26,34 @@
   ; (U xml #f)
   (define current-xml
     (cond [(cache-style-ref cache style #f) #f]
-          [else (let* ([pos      (next-pos)]
-                       [fmt      (style-number-format style)]
-                       [font     (style-font style)]
-                       [numFmtId (and fmt
-                                      (not (number-format-empty? fmt))
-                                      (cache-style-ref cache fmt))]
-                       [fontId   (and font
-                                      (not (font-empty? font))
-                                      (cache-style-ref cache font))]
-                       [fillId   #f]
-                       [borderId #f])
+          [else (let* ([pos        (next-pos)]
+                       [fmt        (style-number-format style)]
+                       [font       (style-font style)]
+                       [numFmtId   (and fmt
+                                        (not (number-format-empty? fmt))
+                                        (cache-style-ref cache fmt))]
+                       [fontId     (and font
+                                        (not (font-empty? font))
+                                        (cache-style-ref cache font))]
+                       [fillId     #f]
+                       [borderId   #f]
+                       [hidden-raw (style-hidden-raw style)]
+                       [locked-raw (style-locked-raw style)])
                   (cache-style-set! cache style pos)
                   (xml (xf (@ ,(opt-xml-attr numFmtId)
                               ,(opt-xml-attr fontId)
                               ,(opt-xml-attr fillId)
-                              ,(opt-xml-attr borderId)))))]))
+                              ,(opt-xml-attr borderId))
+                           ,(opt-xml (or (boolean? hidden-raw) 
+                                         (boolean? locked-raw))
+                              (protection (@ ,(case hidden-raw
+                                                [(#t) (xml-attrs [hidden "true"])]
+                                                [(#f) (xml-attrs [hidden "false"])]
+                                                [else (xml-attrs)])
+                                             ,(case locked-raw
+                                                [(#t) (xml-attrs [locked "true"])]
+                                                [(#f) (xml-attrs [locked "false"])]
+                                                [else (xml-attrs)])))))))]))
   
   ; (listof xml)
   (define child-xmls
