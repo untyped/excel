@@ -1,7 +1,8 @@
 #lang scheme/base
 
+(require "test-base.ss")
+
 (require "struct-style.ss"
-         "test-base.ss"
          (prefix-in internal: (only-in "struct-style-internal.ss"
                                        make-font
                                        make-style)))
@@ -11,6 +12,12 @@
 
 (define struct-style-tests
   (test-suite "struct-style.ss"
+    
+    (test-case "make-rgba-color"
+      (check-not-exn (cut make-rgba-color 0 0 0 0))
+      (check-not-exn (cut make-rgba-color 1 1 1 1))
+      (check-exn exn:fail:contract? (cut make-rgba-color 1.1 1.1 1.1 1.1))
+      (check-exn exn:fail:contract? (cut make-rgba-color 1/2 1/2 1/2 1/2)))
     
     (test-case "compose-normal"
       (check-equal? (compose-normal (lambda (x) x) 12 #f) 12)
@@ -46,40 +53,49 @@
       (check-false (font-bold?      (make-font #:underline? #t)))
       (check-true  (font-underline? (make-font #:underline? #t))))
     
-    (test-case "font-compose"
-      (check-equal? (font-compose #f #f) (make-font))
-      (check-equal? (font-compose #f (make-font)) (make-font))
-      (check-equal? (font-compose (make-font) #f) (make-font))
-      (check-equal? (font-compose (make-font #:bold? #t #:underline? #t)
-                                  (make-font #:bold? #f #:italic? #f))
+    (test-case "compose-fonts"
+      (check-equal? (compose-fonts (make-font #:bold? #t #:underline? #t)
+                                   (make-font #:bold? #f #:italic? #f))
                     (make-font #:bold? #f #:italic? #f #:underline? #t)))
     
-    (test-case "style-empty?"
-      (check-true  (style-empty? (make-style)))
-      (check-true  (style-empty? (make-style #:number-format (make-number-format #f))))
-      (check-false (style-empty? (make-style #:number-format (make-number-format "0"))))
-      (check-true  (style-empty? (make-style #:font (make-font #:name #f))))
-      (check-false (style-empty? (make-style #:font (make-font #:name "Dave"))))
-      (check-false (style-empty? (make-style #:hidden? #f)))
-      (check-false (style-empty? (make-style #:locked? #f))))
+    (test-case "empty-fill?"
+      (check-true  (empty-fill? (make-empty-fill)))
+      (check-true  (empty-fill? empty-fill))
+      (check-false (empty-fill? (make-linear-gradient-fill 0 (list (make-gradient-stop 0 (make-rgba-color 0 0 0 0))
+                                                                   (make-gradient-stop 1 (make-rgba-color 1 1 1 1))))))
+      (check-false (empty-fill? (make-path-gradient-fill .25 .25 .25 .25
+                                                         (list (make-gradient-stop 0 (make-rgba-color 0 0 0 0))
+                                                               (make-gradient-stop 1 (make-rgba-color 1 1 1 1))))))
+      (check-false (empty-fill? (make-pattern-fill (make-rgba-color 0 0 0 0)
+                                                   (make-rgba-color 1 1 1 1)
+                                                   (pattern-type dark-gray)))))
     
-    (test-case "style-compose"
+    (test-case "empty-style?"
+      (check-true  (empty-style? (make-style)))
+      (check-true  (empty-style? (make-style #:number-format (make-number-format #f))))
+      (check-false (empty-style? (make-style #:number-format (make-number-format "0"))))
+      (check-true  (empty-style? (make-style #:font (make-font #:name #f))))
+      (check-false (empty-style? (make-style #:font (make-font #:name "Dave"))))
+      (check-false (empty-style? (make-style #:hidden? #f)))
+      (check-false (empty-style? (make-style #:locked? #f))))
+    
+    (test-case "compose-styles"
       (let ([fmt1  (make-number-format #f)]
             [fmt2  (make-number-format "0")]
             [font1 (make-font #:name "Dave")]
             [font2 (make-font #:name "David")])
-        (check-equal? (style-compose (make-style #:number-format fmt1
+        (check-equal? (compose-styles (make-style #:number-format fmt1
                                                  #:font          font1)
                                      (make-style #:number-format fmt2
                                                  #:hidden?       #f))
                       (make-style #:number-format fmt2
                                   #:font font1
                                   #:hidden? #f))
-        (check-equal? (style-compose (make-style) (make-style #:number-format fmt2))
+        (check-equal? (compose-styles (make-style) (make-style #:number-format fmt2))
                       (make-style #:number-format fmt2))
-        (check-equal? (style-compose (make-style #:number-format fmt1) (make-style))
+        (check-equal? (compose-styles (make-style #:number-format fmt1) (make-style))
                       (make-style #:number-format fmt1))
-        (check-equal? (style-compose (make-style) (make-style)) (make-style))))))
+        (check-equal? (compose-styles (make-style) (make-style)) (make-style))))))
 
 ; Provide statements -----------------------------
 

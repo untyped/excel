@@ -1,8 +1,8 @@
 #lang scheme/base
 
-(require (planet untyped/unlib:3/hash)
-         (planet untyped/unlib:3/symbol)
-         "base.ss"
+(require "base.ss")
+
+(require (unlib-in hash symbol)
          "ref.ss"
          "struct-internal.ss"
          "struct-style.ss")

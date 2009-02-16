@@ -1,7 +1,8 @@
 #lang scheme/base
 
-(require "base.ss"
-         "struct.ss")
+(require "base.ss")
+
+(require "struct.ss")
 
 ; Filenames --------------------------------------
 

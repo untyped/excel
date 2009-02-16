@@ -1,8 +1,9 @@
 #lang scheme/base
 
+(require "test-base.ss")
+
 (require "range.ss"
-         "struct.ss"
-         "test-base.ss")
+         "struct.ss")
 
 ; cell ...
 (define-values (a b c d e f g h i j)

@@ -1,10 +1,11 @@
 #lang scheme/base
 
-(require (planet untyped/unlib:3/hash)
+(require "test-base.ss")
+
+(require (unlib-in hash)
          "xml-cache.ss"
          "range.ss"
-         "struct.ss"
-         "test-base.ss")
+         "struct.ss")
 
 (require/expose "xml-cache.ss"
   (create-forward-lookup/book

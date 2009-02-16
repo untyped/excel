@@ -1,7 +1,8 @@
 #lang scheme/base
 
-(require "base.ss"
-         "struct-internal.ss")
+(require "base.ss")
+
+(require "struct-internal.ss")
 
 ; natural natural [boolean] [boolean] -> string
 (define (xy->ref x y [absolute-x? #f] [absolute-y? #f])

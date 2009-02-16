@@ -1,24 +1,25 @@
 #lang scheme/base
 
-(require (planet untyped/unlib:3/hash)
-         (planet untyped/unlib:3/symbol)
-         "base.ss"
+(require "base.ss")
+
+(require (unlib-in hash symbol)
          "ref.ss"
-         "struct-style-internal.ss")
+         (except-in "struct-style-internal.ss"
+                    empty-fill)) ; struct type transformer binding replaced by struct constant
 
 ; Number formats ---------------------------------
 
 ; [(U string #f)] -> number-format
 (define (create-number-format [code #f])
   (make-number-format code))
-  
+
 ; number-format -> boolean
-(define (number-format-empty? fmt)
+(define (empty-number-format? fmt)
   (not (number-format-code fmt)))
 
 ; number-format number-format -> number-format
-(define (number-format-compose fmt1 fmt2)
-  (if (number-format-empty? fmt2)
+(define (compose-number-formats fmt1 fmt2)
+  (if (empty-number-format? fmt2)
       fmt1
       fmt2))
 
@@ -69,7 +70,7 @@
 (define (font-subscript? font)   (eq? (font-subscript-raw font)   #t))
 
 ; font -> boolean
-(define (font-empty? font)
+(define (empty-font? font)
   (and (not (font-name font))
        (not (font-size font))
        (not (font-color font))
@@ -83,7 +84,7 @@
        (void? (font-subscript-raw font))))
 
 ; (U font #f) (U font #f) -> font
-(define (font-compose font1 font2)
+(define (compose-fonts font1 font2)
   (if font1
       (if font2
           (make-font (compose-normal  font-name            font1 font2)
@@ -105,39 +106,66 @@
 ; font
 (define empty-font (create-font))
 
+; Fills ------------------------------------------
+
+; color -> fill
+(define (make-solid-fill color)
+  (make-pattern-fill color color (pattern-type solid)))
+
+; fill -> boolean
+(define (solid-fill? fill)
+  (and (pattern-fill? fill)
+       (eq? (pattern-fill-type fill) (pattern-type solid))
+       #t))
+
+(define fill-empty? empty-fill?)
+
+; fill fill -> fill
+(define (compose-fills fill1 fill2)
+  (if (fill-empty? fill2)
+      fill1
+      fill2))
+
+; fill
+(define empty-fill (make-empty-fill))
+
 ; Styles -----------------------------------------
 
-;  [#:number-format (U number-format #f)]
-;  [#:font          (U font #f)]
+;  [#:number-format number-format]
+;  [#:font          font]
+;  [#:fill          fill]
 ;  [#:hidden?       (U boolean void)]
 ;  [#:locked?       (U boolean void)]
 ; ->
 ;  style
 (define (create-style #:number-format [fmt        empty-number-format]
                       #:font          [font       empty-font]
+                      #:fill          [fill       empty-fill]
                       #:hidden?       [hidden-raw (void)]
                       #:locked?       [locked-raw (void)])
-  (make-style fmt font hidden-raw locked-raw))
+  (make-style fmt font fill hidden-raw locked-raw))
 
 ; style -> boolean
 (define (style-hidden? style) (eq? (style-hidden-raw style) #t))
 (define (style-locked? style) (eq? (style-locked-raw style) #t))
 
 ; style -> boolean
-(define (style-empty? style)
-  (and (number-format-empty? (style-number-format style))
-       (font-empty? (style-font style))
+(define (empty-style? style)
+  (and (empty-number-format? (style-number-format style))
+       (empty-font? (style-font style))
        (void? (style-hidden-raw style))
        (void? (style-locked-raw style))))
 
 ; (U style #f) (U style #f) -> style
-(define (style-compose style1 style2)
+(define (compose-styles style1 style2)
   (if style1
       (if style2
-          (make-style (number-format-compose (style-number-format style1)
+          (make-style (compose-number-formats (style-number-format style1)
                                              (style-number-format style2))
-                      (font-compose (style-font style1)
+                      (compose-fonts (style-font style1)
                                     (style-font style2))
+                      (compose-fills (style-fill style1)
+                                     (style-fill style2))
                       (compose-boolean style-hidden-raw style1 style2)
                       (compose-boolean style-locked-raw style1 style2))
           style1)
@@ -168,13 +196,16 @@
 ; Provide statements -----------------------------
 
 (provide (except-out (all-from-out "struct-style-internal.ss")
+                     make-color ; no direct cosntructor
                      make-number-format
                      make-font
+                     make-fill ; no direct constructor
                      make-style))
 
 (provide/contract
  [rename create-number-format make-number-format (->* () ((or/c string? #f)) number-format?)]
- [number-format-empty?                           (-> number-format? boolean?)]
+ [empty-number-format?                           (-> number-format? boolean?)]
+ [compose-number-formats                         (-> number-format? number-format? number-format?)]
  [empty-number-format                            number-format?]
  [general-number-format                          number-format?]
  [rename create-font make-font                   (->* ()
@@ -198,17 +229,22 @@
  [font-strike?                                   (-> font? boolean?)]
  [font-superscript?                              (-> font? boolean?)]
  [font-subscript?                                (-> font? boolean?)]
- [font-empty?                                    (-> font? boolean?)]
- [font-compose                                   (-> font? font? font?)]
+ [empty-font?                                    (-> font? boolean?)]
+ [compose-fonts                                  (-> font? font? font?)]
  [empty-font                                     font?]
+ [make-solid-fill                                (-> color? fill?)]
+ [solid-fill?                                    (-> fill? boolean?)]
+ [compose-fills                                  (-> fill? fill? fill?)]
+ [empty-fill                                     fill?]
  [rename create-style make-style                 (->* ()
                                                       (#:number-format number-format?
                                                                        #:font    font?
+                                                                       #:fill    fill?
                                                                        #:hidden? (or/c boolean? void?)
                                                                        #:locked? (or/c boolean? void?))
                                                       style?)]
  [style-hidden?                                  (-> style? boolean?)]
  [style-locked?                                  (-> style? boolean?)]
- [style-empty?                                   (-> style? boolean?)]
- [style-compose                                  (-> style? (or/c style? #f) style?)]
+ [empty-style?                                   (-> style? boolean?)]
+ [compose-styles                                 (-> style? (or/c style? #f) style?)]
  [empty-style                                    style?])

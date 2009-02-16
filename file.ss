@@ -1,9 +1,10 @@
 #lang scheme/base
 
+(require "base.ss")
+
 (require file/zip
          scheme/file
-         (planet untyped/unlib:3/file)
-         "base.ss"
+         (unlib-in file)
          "xml-cache.ss"
          "path.ss"
          "ref.ss"

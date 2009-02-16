@@ -1,9 +1,10 @@
 #lang scheme/base
 
+(require "test-base.ss")
+
 (require "xml-cache.ss"
          "range.ss"
          "struct.ss"
-         "test-base.ss"
          "xml-font.ss"
          "xml-number-format.ss"
          "xml-style.ss")

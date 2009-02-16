@@ -1,7 +1,8 @@
 #lang scheme/base
 
-(require "base.ss"
-         "struct-style-internal.ss")
+(require "base.ss")
+
+(require "struct-style-internal.ss")
 
 ; (struct)
 (define-struct data () #:transparent #:mutable)

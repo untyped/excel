@@ -1,7 +1,8 @@
 #lang scheme/base
 
-(require "base.ss"
-         "xml-cache.ss"
+(require "base.ss")
+
+(require "xml-cache.ss"
          "path.ss"
          "ref.ss"
          "struct.ss"

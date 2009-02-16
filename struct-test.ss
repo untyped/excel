@@ -1,7 +1,8 @@
 #lang scheme/base
 
-(require "struct.ss"
-         "test-base.ss")
+(require "test-base.ss")
+
+(require "struct.ss")
 
 (define struct-tests
   (test-suite "struct.ss"
