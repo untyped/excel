@@ -7,6 +7,7 @@
          "ref-test.ss"
          "struct-style-test.ss"
          "struct-test.ss"
+         "xml-border-test.ss"
          "xml-fill-test.ss"
          "xml-font-test.ss"
          "xml-number-format-test.ss"
@@ -20,9 +21,10 @@
     ref-tests
     struct-style-tests
     struct-tests
-    xml-fill-tests
-    xml-font-tests
     xml-number-format-tests
+    xml-font-tests
+    xml-fill-tests
+    xml-border-tests
     xml-style-tests
     xml-tests))
 

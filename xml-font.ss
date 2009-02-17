@@ -10,46 +10,54 @@
 
 ; cache workbook -> xml
 (define (fonts-xml! cache book)
-  (let* ([initial-font (make-font)]
-         [next-pos     (make-counter 0)]
-         [elements     (apply append (for/list ([sheet (in-list (workbook-sheets book))])
-                                       (fonts-xml/internal! cache (worksheet-data sheet) initial-font next-pos)))])
+  (let* ([next-pos (make-counter 0)]
+         [elements (list* (font-xml! cache empty-font next-pos)
+                          (apply append (for/list ([sheet (in-list (workbook-sheets book))])
+                                          (fonts-xml/internal! cache (worksheet-data sheet) empty-font next-pos))))])
     (xml (fonts (@ [count ,(length elements)])
                 ,@elements))))
 
 ; cache range font (-> natural) -> (listof xml)
 (define (fonts-xml/internal! cache range parent-font next-pos)
-    
+  
   ; font
   (define font
     (compose-fonts parent-font (style-font (range-style range))))
   
   ; (U xml #f)
   (define current-xml
-    (cond [(cache-style-ref cache font #f) #f]
-          [else (let* ([pos (next-pos)])
-                  (cache-style-set! cache font pos)
-                  (xml (font ,(opt-xml (font-name       font) (name (@ [val ,(font-name font)])))
-                             ,(opt-xml (font-size       font) (sz   (@ [val ,(font-size font)])))
-                             #;,(opt-xml (font-color      font) (color (@ [val ,(font-color font)])))
-                             ,(opt-xml (font-bold?      font) (b))
-                             ,(opt-xml (font-italic?    font) (i))
-                             ,(opt-xml (font-underline? font) (u))
-                             ,(opt-xml (font-outline?   font) (outline))
-                             ,(opt-xml (font-shadow?    font) (shadow))
-                             ,(opt-xml (font-strike?    font) (strike))
-                             ,(cond [(font-superscript? font) (xml (vertAlign (@ [val "superscript"])))]
-                                    [(font-subscript?   font) (xml (vertAlign (@ [val "subscript"])))]
-                                    [else                     (xml)]))))]))
-    
-    ; (listof xml)
-    (define child-xmls
-      (apply append (for/list ([child (in-list (range-children range))])
-                      (fonts-xml/internal! cache child font next-pos))))
-    
-    (if current-xml
-        (cons current-xml child-xmls)
-        child-xmls))
+    (if (cache-style-ref cache font #f)
+        #f
+        (font-xml! cache font next-pos)))
+  
+  ; (listof xml)
+  (define child-xmls
+    (apply append (for/list ([child (in-list (range-children range))])
+                    (fonts-xml/internal! cache child font next-pos))))
+  
+  (if current-xml
+      (cons current-xml child-xmls)
+      child-xmls))
+
+; Helpers ----------------------------------------
+
+; cache font (-> natural) -> xml
+(define (font-xml! cache fnt next-pos)
+  (cache-style-set! cache fnt (next-pos))
+  (match fnt
+    [(struct font (name size color bold italic underline outline shadow strike super sub))
+     (xml (font ,(opt-xml name  (name  (@ [val ,name])))
+                ,(opt-xml size  (sz    (@ [val ,size])))
+                ,(opt-xml color (color (@ [rgb ,(rgba-color-hex color)])))
+                ,(opt-xml (eq? bold       #t) (b))
+                ,(opt-xml (eq? italic     #t) (i))
+                ,(opt-xml (eq? underline  #t) (u))
+                ,(opt-xml (eq? outline    #t) (outline))
+                ,(opt-xml (eq? shadow     #t) (shadow))
+                ,(opt-xml (eq? strike     #t) (strike))
+                ,(cond [(eq? super        #t) (xml (vertAlign (@ [val "superscript"])))]
+                       [(eq? sub          #t) (xml (vertAlign (@ [val "subscript"])))]
+                       [else                  (xml)])))]))
 
 ; Provide statements -----------------------------
 

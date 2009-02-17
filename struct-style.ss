@@ -4,8 +4,19 @@
 
 (require (unlib-in hash symbol)
          "ref.ss"
-         (except-in "struct-style-internal.ss"
-                    empty-fill)) ; struct type transformer binding replaced by struct constant
+         (except-in "struct-style-internal.ss" empty-fill)) ; replaced by struct constant
+
+; Colors -----------------------------------------
+
+; [0,1] [0,1] [0,1] -> rgba-color
+(define (make-rgb-color r g b)
+  (make-rgba-color r g b 1))
+
+; [0,1] [0,1] [0,1] -> rgba-color
+(define rgb make-rgb-color)
+
+; [0,1] [0,1] [0,1] [0,1] -> rgba-color
+(define rgba make-rgba-color)
 
 ; Number formats ---------------------------------
 
@@ -83,25 +94,19 @@
        (void? (font-superscript-raw font))
        (void? (font-subscript-raw font))))
 
-; (U font #f) (U font #f) -> font
+; font font -> font
 (define (compose-fonts font1 font2)
-  (if font1
-      (if font2
-          (make-font (compose-normal  font-name            font1 font2)
-                     (compose-normal  font-size            font1 font2)
-                     (compose-normal  font-color           font1 font2)
-                     (compose-boolean font-bold-raw        font1 font2)
-                     (compose-boolean font-italic-raw      font1 font2)
-                     (compose-boolean font-underline-raw   font1 font2)
-                     (compose-boolean font-outline-raw     font1 font2)
-                     (compose-boolean font-shadow-raw      font1 font2)
-                     (compose-boolean font-strike-raw      font1 font2)
-                     (compose-boolean font-superscript-raw font1 font2)
-                     (compose-boolean font-subscript-raw   font1 font2))
-          font1)
-      (if font2
-          font2
-          (create-font))))
+  (make-font (compose-normal  font-name            font1 font2)
+             (compose-normal  font-size            font1 font2)
+             (compose-normal  font-color           font1 font2)
+             (compose-boolean font-bold-raw        font1 font2)
+             (compose-boolean font-italic-raw      font1 font2)
+             (compose-boolean font-underline-raw   font1 font2)
+             (compose-boolean font-outline-raw     font1 font2)
+             (compose-boolean font-shadow-raw      font1 font2)
+             (compose-boolean font-strike-raw      font1 font2)
+             (compose-boolean font-superscript-raw font1 font2)
+             (compose-boolean font-subscript-raw   font1 font2)))
 
 ; font
 (define empty-font (create-font))
@@ -133,11 +138,143 @@
                      (make-rgba-color 1 1 1 1)
                      (pattern-type gray-125)))
 
+; Borders ----------------------------------------
+
+;  [#:top            (U line #f)]
+;  [#:right          (U line #f)]
+;  [#:bottom         (U line #f)]
+;  [#:left           (U line #f)]
+;  [#:horizontal     (U line #f)]
+;  [#:vertical       (U line #f)]
+;  [#:diagonal       (U line #f)]
+;  [#:outline?       (U boolean void)]
+;  [#:diagonal-down? (U boolean void)]
+;  [#:diagonal-up?   (U boolean void)]
+; ->
+;  border
+(define (create-border #:top            [top               #f]
+                       #:right          [right             #f]
+                       #:bottom         [bottom            #f]
+                       #:left           [left              #f]
+                       #:horizontal     [horizontal        #f]
+                       #:vertical       [vertical          #f]
+                       #:diagonal       [diagonal          #f]
+                       #:outline?       [outline-raw       (void)]
+                       #:diagonal-down? [diagonal-down-raw (void)]
+                       #:diagonal-up?   [diagonal-up-raw   (void)])
+  (make-border top right bottom left
+               horizontal vertical diagonal
+               outline-raw
+               (or (and diagonal
+                        (void? diagonal-down-raw)
+                        (void? diagonal-up-raw))
+                   diagonal-down-raw)
+               diagonal-up-raw))
+
+; border -> boolean
+(define (empty-border? border)
+  (and (not   (border-top               border))
+       (not   (border-right             border))
+       (not   (border-bottom            border))
+       (not   (border-left              border))
+       (not   (border-horizontal        border))
+       (not   (border-vertical          border))
+       (not   (border-diagonal          border))
+       (void? (border-outline-raw       border))
+       (void? (border-diagonal-down-raw border))
+       (void? (border-diagonal-up-raw   border))))
+
+; border border -> border
+(define (compose-borders border1 border2)
+  (make-border (compose-normal  border-top               border1 border2)
+               (compose-normal  border-right             border1 border2)
+               (compose-normal  border-bottom            border1 border2)
+               (compose-normal  border-left              border1 border2)
+               (compose-normal  border-horizontal        border1 border2)
+               (compose-normal  border-vertical          border1 border2)
+               (compose-normal  border-diagonal          border1 border2)
+               (compose-boolean border-outline-raw       border1 border2)
+               (compose-boolean border-diagonal-down-raw border1 border2)
+               (compose-boolean border-diagonal-up-raw   border1 border2)))
+
+; border
+(define empty-border (create-border))
+
+; [border-style] [color] -> line
+(define (create-line [style (border-style thin)] [color (make-rgba-color 0 0 0 1)])
+  (make-line style color))
+
+; Alignments -------------------------------------
+
+;  [#:horizontal         (U horizontal-indent #f)]
+;  [#:vertical           (U vertical-indent #f)]
+;  [#:wrap?              (U boolean void)]
+;  [#:shrink?            (U boolean void)]
+;  [#:rotation           (U [0,359] #f)]
+;  [#:reading-order      (U reading-order #f)]
+;  [#:justify-last-line? (U boolean void)]
+;  [#:indent             (U natural #f)]
+;  [#:relative-indent    (U natural #f)]
+; ->
+;  alignment
+(define (create-alignment #:horizontal         [horizontal            #f]
+                          #:vertical           [vertical              #f]
+                          #:wrap?              [wrap-raw              (void)]
+                          #:shrink?            [shrink-raw            (void)]
+                          #:rotation           [rotation              #f]
+                          #:reading-order      [reading-order         #f]
+                          #:justify-last-line? [justify-last-line-raw (void)]
+                          #:indent             [indent                #f]
+                          #:relative-indent    [relative-indent       #f])
+  (make-alignment horizontal
+                  vertical
+                  wrap-raw
+                  shrink-raw
+                  rotation
+                  reading-order
+                  justify-last-line-raw
+                  indent
+                  relative-indent))
+
+; alignment -> boolean
+(define (alignment-wrap? align)              (eq? (alignment-wrap-raw align)              #t))
+(define (alignment-shrink? align)            (eq? (alignment-shrink-raw align)            #t))
+(define (alignment-justify-last-line? align) (eq? (alignment-justify-last-line-raw align) #t))
+
+; alignment -> boolean
+(define (empty-alignment? align)
+  (and (not (alignment-horizontal align))
+       (not (alignment-vertical align))
+       (void? (alignment-wrap-raw align))
+       (void? (alignment-shrink-raw align))
+       (not (alignment-rotation align))
+       (not (alignment-reading-order align))
+       (void? (alignment-justify-last-line-raw align))
+       (not (alignment-indent align))
+       (not (alignment-relative-indent align))))
+
+; alignment alignment -> alignment
+(define (compose-alignments align1 align2)
+  (make-alignment (compose-normal  alignment-horizontal            align1 align2)
+                  (compose-normal  alignment-vertical              align1 align2)
+                  (compose-boolean alignment-wrap-raw              align1 align2)
+                  (compose-boolean alignment-shrink-raw            align1 align2)
+                  (compose-normal  alignment-rotation              align1 align2)
+                  (compose-normal  alignment-reading-order         align1 align2)
+                  (compose-boolean alignment-justify-last-line-raw align1 align2)
+                  (compose-normal  alignment-indent                align1 align2)
+                  (compose-normal  alignment-relative-indent       align1 align2)))
+
+; alignment
+(define empty-alignment (create-alignment))
+
 ; Styles -----------------------------------------
 
 ;  [#:number-format number-format]
 ;  [#:font          font]
 ;  [#:fill          fill]
+;  [#:border        border]
+;  [#:alignment     alignment]
 ;  [#:hidden?       (U boolean void)]
 ;  [#:locked?       (U boolean void)]
 ; ->
@@ -145,9 +282,11 @@
 (define (create-style #:number-format [fmt        empty-number-format]
                       #:font          [font       empty-font]
                       #:fill          [fill       empty-fill]
+                      #:border        [border     empty-border]
+                      #:alignment     [alignment  empty-alignment]
                       #:hidden?       [hidden-raw (void)]
                       #:locked?       [locked-raw (void)])
-  (make-style fmt font fill hidden-raw locked-raw))
+  (make-style fmt font fill border alignment hidden-raw locked-raw))
 
 ; style -> boolean
 (define (style-hidden? style) (eq? (style-hidden-raw style) #t))
@@ -156,26 +295,27 @@
 ; style -> boolean
 (define (empty-style? style)
   (and (empty-number-format? (style-number-format style))
-       (empty-font? (style-font style))
+       (empty-font?          (style-font          style))
+       (empty-fill?          (style-fill          style))
+       (empty-border?        (style-border        style))
+       (empty-alignment?     (style-alignment     style))
        (void? (style-hidden-raw style))
        (void? (style-locked-raw style))))
 
-; (U style #f) (U style #f) -> style
+; style style -> style
 (define (compose-styles style1 style2)
-  (if style1
-      (if style2
-          (make-style (compose-number-formats (style-number-format style1)
-                                             (style-number-format style2))
-                      (compose-fonts (style-font style1)
-                                    (style-font style2))
-                      (compose-fills (style-fill style1)
-                                     (style-fill style2))
-                      (compose-boolean style-hidden-raw style1 style2)
-                      (compose-boolean style-locked-raw style1 style2))
-          style1)
-      (if style2
-          style2
-          (create-style))))
+  (make-style (compose-number-formats (style-number-format style1)
+                                      (style-number-format style2))
+              (compose-fonts          (style-font          style1)
+                                      (style-font          style2))
+              (compose-fills          (style-fill          style1)
+                                      (style-fill          style2))
+              (compose-borders        (style-border        style1)
+                                      (style-border        style2))
+              (compose-alignments     (style-alignment     style1)
+                                      (style-alignment     style2))
+              (compose-boolean style-hidden-raw style1 style2)
+              (compose-boolean style-locked-raw style1 style2)))
 
 ; style
 (define empty-style (create-style))
@@ -200,13 +340,23 @@
 ; Provide statements -----------------------------
 
 (provide (except-out (all-from-out "struct-style-internal.ss")
-                     make-color ; no direct cosntructor
-                     make-number-format
-                     make-font
-                     make-fill ; no direct constructor
-                     make-style))
+                     full-circle-degrees/c
+                     half-circle-degrees/c
+                     fraction/c
+                     make-color         ; no direct cosntructor
+                     make-number-format ; optional argument constructor
+                     make-font          ; keyword constructor
+                     make-fill          ; no direct constructor
+                     make-border        ; keyword constructor
+                     make-line          ; optional argument constructor
+                     make-alignment     ; keyword constructor
+                     make-empty-fill    ; no direct constructor
+                     make-style))       ; keyword constructor
 
 (provide/contract
+ [make-rgb-color                                 (-> fraction/c fraction/c fraction/c rgba-color?)]
+ [rgb                                            (-> fraction/c fraction/c fraction/c rgba-color?)]
+ [rgba                                           (-> fraction/c fraction/c fraction/c fraction/c rgba-color?)]
  [rename create-number-format make-number-format (->* () ((or/c string? #f)) number-format?)]
  [empty-number-format?                           (-> number-format? boolean?)]
  [compose-number-formats                         (-> number-format? number-format? number-format?)]
@@ -241,13 +391,48 @@
  [compose-fills                                  (-> fill? fill? fill?)]
  [empty-fill                                     fill?]
  [gray-125-fill                                  fill?]
+ [rename create-border make-border               (->* ()
+                                                      (#:top (or/c line? #f)
+                                                             #:right          (or/c line? #f)
+                                                             #:bottom         (or/c line? #f)
+                                                             #:left           (or/c line? #f)
+                                                             #:horizontal     (or/c line? #f)
+                                                             #:vertical       (or/c line? #f)
+                                                             #:diagonal       (or/c line? #f)
+                                                             #:outline?       (or/c boolean? void?)
+                                                             #:diagonal-down? (or/c boolean? void?)
+                                                             #:diagonal-up?   (or/c boolean? void?))
+                                                      border?)]
+ [empty-border?                                  (-> border? boolean?)]
+ [compose-borders                                (-> border? border? border?)]
+ [empty-border                                   border?]
+ [rename create-line make-line                   (->* () (border-style? color?) line?)]
+ [rename create-alignment make-alignment         (->* ()
+                                                      (#:horizontal horizontal-alignment?
+                                                                    #:vertical           vertical-alignment?
+                                                                    #:wrap?              (or/c boolean? void?)
+                                                                    #:shrink?            (or/c boolean? void?)
+                                                                    #:rotation           (or/c half-circle-degrees/c #f)
+                                                                    #:reading-order      (or/c reading-order? #f)
+                                                                    #:justify-last-line? (or/c boolean? void?)
+                                                                    #:indent             (or/c natural-number/c #f)
+                                                                    #:relative-indent    (or/c natural-number/c #f))
+                                                      alignment?)]
+ [alignment-wrap?                                (-> alignment? boolean?)]
+ [alignment-shrink?                              (-> alignment? boolean?)]
+ [alignment-justify-last-line?                   (-> alignment? boolean?)]
+ [empty-alignment?                               (-> alignment? boolean?)]
+ [compose-alignments                             (-> alignment? alignment? alignment?)]
  [rename create-style make-style                 (->* ()
                                                       (#:number-format number-format?
-                                                                       #:font    font?
-                                                                       #:fill    fill?
-                                                                       #:hidden? (or/c boolean? void?)
-                                                                       #:locked? (or/c boolean? void?))
+                                                                       #:font      font?
+                                                                       #:fill      fill?
+                                                                       #:border    border?
+                                                                       #:alignment alignment?
+                                                                       #:hidden?   (or/c boolean? void?)
+                                                                       #:locked?   (or/c boolean? void?))
                                                       style?)]
+ [empty-alignment                                alignment?]
  [style-hidden?                                  (-> style? boolean?)]
  [style-locked?                                  (-> style? boolean?)]
  [empty-style?                                   (-> style? boolean?)]

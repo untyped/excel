@@ -12,6 +12,7 @@
 (define (number-formats-xml! cache book)
   (let* ([next-id  (make-counter 100)]
          [elements (begin
+                     ; No XML for this one:
                      (cache-style-set! cache empty-number-format 0)
                      (apply append (for/list ([sheet (in-list (workbook-sheets book))])
                                    (number-formats-xml/internal! cache (worksheet-data sheet) next-id))))])

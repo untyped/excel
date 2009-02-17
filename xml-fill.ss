@@ -11,12 +11,11 @@
 ; cache workbook -> xml
 (define (fills-xml! cache book)
   (let* ([next-pos (make-counter 0)]
-         [elements (list*
-                    ; Record the two reserved styles:
-                    (fill-xml cache empty-fill next-pos)
-                    (fill-xml cache gray-125-fill next-pos)
-                    (apply append (for/list ([sheet (in-list (workbook-sheets book))])
-                                    (fills-xml/internal! cache (worksheet-data sheet) empty-fill next-pos))))])
+         ; Record reserved styles before we traverse the tree:
+         [elements (list* (fill-xml! cache empty-fill next-pos)
+                          (fill-xml! cache gray-125-fill next-pos)
+                          (apply append (for/list ([sheet (in-list (workbook-sheets book))])
+                                          (fills-xml/internal! cache (worksheet-data sheet) empty-fill next-pos))))])
     (xml (fills (@ [count ,(length elements)])
                 ,@elements))))
 
@@ -30,7 +29,7 @@
   (define current-xml
     (if (cache-style-ref cache fill #f)
         #f
-        (fill-xml cache fill next-pos)))
+        (fill-xml! cache fill next-pos)))
   
   ; (listof xml)
   (define child-xmls
@@ -54,9 +53,9 @@
   (if code #f 0))
 
 ; cache fill (-> natural) -> xml
-(define (fill-xml cache fill next-pos)
-  (cache-style-set! cache fill (next-pos))
-  (match fill
+(define (fill-xml! cache fil next-pos)
+  (cache-style-set! cache fil (next-pos))
+  (match fil
     [(? empty-fill?)
      (xml (fill (patternFill (@ [patternType "none"]))))]
     [(struct pattern-fill (fg bg type))

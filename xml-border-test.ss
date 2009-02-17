@@ -5,17 +5,17 @@
 (require "xml-cache.ss"
          "range.ss"
          "struct.ss"
-         "xml-font.ss")
+         "xml-border.ss")
 
 ; Test data --------------------------------------
 
-(define font1 (make-font #:name "Dave" #:bold? #t))
-(define font2 (make-font #:bold? #f))
-(define font3 (make-font #:italic? #t))
+(define border1 (make-border #:top    (make-line)))
+(define border2 (make-border #:right  (make-line)))
+(define border3 (make-border #:bottom (make-line)))
 
-(define style1 (make-style #:font font1))
-(define style2 (make-style #:font font2))
-(define style3 (make-style #:font font3))
+(define style1 (make-style #:border border1))
+(define style2 (make-style #:border border2))
+(define style3 (make-style #:border border3))
 
 (define a1 (make-cell "A1"))
 (define a2 (make-cell "A2"))
@@ -26,10 +26,10 @@
 
 ; Tests ------------------------------------------
 
-(define xml-font-tests
-  (test-suite "xml-font.ss"
+(define xml-border-tests
+  (test-suite "xml-border.ss"
     
-    (test-case "fonts-xml! : no fonts"
+    (test-case "borders-xml! : no borders"
       
       (define range
         (hc-append (vc-append (make-cell "A1")
@@ -41,15 +41,15 @@
       
       (define book  (make-workbook (list (make-worksheet "Sheet1" range))))
       (define cache (make-cache book))
-      (define data  (fonts-xml! cache book))
+      (define data  (borders-xml! cache book))
       
       (check-equal?
        (xml->string data)
-       (xml->string (xml (fonts (@ [count 1])
-                                ; Need this unquote to prevent the tag collapsing to <font />:
-                                (font ,(xml)))))))
+       (xml->string (xml (borders (@ [count 1])
+                                ; Need this unquote to prevent the tag collapsing to <border />:
+                                (border ,(xml)))))))
     
-    (test-case "fonts-xml!"
+    (test-case "borders-xml!"
       
       (define range
         (hc-append (vc-append (make-cell "A1")
@@ -69,22 +69,24 @@
         (make-cache book))
       
       (define data
-        (fonts-xml! cache book))
+        (borders-xml! cache book))
       
-      (check-eq?   (cache-style-ref cache font1) 1)
-      (check-false (cache-style-ref cache font2 #f))
-      (check-false (cache-style-ref cache font3 #f))
-      (check-eq?   (cache-style-ref cache (compose-fonts font1 font2)) 2)
-      (check-eq?   (cache-style-ref cache (compose-fonts font1 font3)) 3)
+      (check-eq?   (cache-style-ref cache border1) 1)
+      (check-false (cache-style-ref cache border2 #f))
+      (check-false (cache-style-ref cache border3 #f))
+      (check-eq?   (cache-style-ref cache (compose-borders border1 border2)) 2)
+      (check-eq?   (cache-style-ref cache (compose-borders border1 border3)) 3)
       
       (check-equal?
        (xml->string data)
-       (xml->string (xml (fonts (@ [count 4])
-                                (font ,(xml))
-                                (font (name (@ [val "Dave"])) (b))
-                                (font (name (@ [val "Dave"])))
-                                (font (name (@ [val "Dave"])) (b) (i)))))))))
+       (xml->string (xml (borders (@ [count 4])
+                                  (border ,(xml))
+                                  (border (top    (@ [style "thin"]) ,(xml)))
+                                  (border (top    (@ [style "thin"]) ,(xml))
+                                          (right  (@ [style "thin"]) ,(xml)))
+                                  (border (top    (@ [style "thin"]) ,(xml))
+                                          (bottom (@ [style "thin"]) ,(xml))))))))))
 
 ; Provide statements -----------------------------
 
-(provide xml-font-tests)
+(provide xml-border-tests)
