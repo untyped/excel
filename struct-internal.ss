@@ -35,13 +35,13 @@
    sort-lock?)
   #:transparent #:mutable)
 
-; (struct (U style #f))
+; (struct style)
 (define-struct (range data) (style) #:transparent #:mutable)
 
-; (struct (listof style) any)
+; (struct style any)
 (define-struct (cell range) (value) #:transparent #:mutable)
 
-; (struct (listof style) (listof part) natural natural)
+; (struct style (listof part) natural natural)
 (define-struct (union range) (parts width height) #:transparent)
 
 ; (struct range natural natural)

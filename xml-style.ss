@@ -22,29 +22,29 @@
   
   ; style
   (define style
-    (style-compose parent-style (range-style range)))
+    (compose-styles parent-style (range-style range)))
   
   ; (U xml #f)
   (define current-xml
     (cond [(cache-style-ref cache style #f) #f]
-          [else (let* ([pos        (next-pos)]
-                       [fmt        (style-number-format style)]
+          [else (let* ([fmt        (style-number-format style)]
                        [font       (style-font style)]
-                       [numFmtId   (and fmt
-                                        (not (number-format-empty? fmt))
-                                        (cache-style-ref cache fmt))]
-                       [fontId     (and font
-                                        (not (font-empty? font))
-                                        (cache-style-ref cache font))]
-                       [fillId     #f]
+                       [fill       (style-fill style)]
+                       [numFmtId   (if (empty-number-format? fmt)
+                                       0
+                                       (cache-style-ref cache fmt))]
+                       [fontId     (cache-style-ref cache font)]
+                       [fillId     (cache-style-ref cache fill)]
                        [borderId   #f]
                        [hidden-raw (style-hidden-raw style)]
                        [locked-raw (style-locked-raw style)])
-                  (cache-style-set! cache style pos)
+                  (cache-style-set! cache style (next-pos))
                   (xml (xf (@ ,(opt-xml-attr numFmtId)
                               ,(opt-xml-attr fontId)
                               ,(opt-xml-attr fillId)
-                              ,(opt-xml-attr borderId))
+                              ,(opt-xml-attr borderId)
+                              ,(opt-xml-attr (not (empty-font? font)) applyFont "true")
+                              ,(opt-xml-attr (not (empty-fill? fill)) applyFill "true"))
                            ,(opt-xml (or (boolean? hidden-raw) 
                                          (boolean? locked-raw))
                               (protection (@ ,(case hidden-raw
@@ -62,7 +62,7 @@
                     (styles-xml/internal! cache child style next-pos))))
   
   ; void
-  (when (and (cell? range) (not (style-empty? style)))
+  (when (cell? range)
     (cache-cell-style-set! cache range (cache-style-ref cache style)))
   
   ; (listof xml)

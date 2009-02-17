@@ -18,9 +18,9 @@
       (define fmt2 (make-number-format "0"))
       (define fmt3 (make-number-format "0.00"))
       
-      (define style1 (make-style fmt1))
-      (define style2 (make-style fmt2))
-      (define style3 (make-style fmt3))
+      (define style1 (make-style #:number-format fmt1))
+      (define style2 (make-style #:number-format fmt2))
+      (define style3 (make-style #:number-format fmt3))
       
       (define range
         (hc-append (vc-append (make-cell "A1")

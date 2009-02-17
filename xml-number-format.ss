@@ -8,11 +8,13 @@
 
 ; Procedures -------------------------------------
 
-; cache workbook -> listof xml
+; cache workbook -> xml
 (define (number-formats-xml! cache book)
   (let* ([next-id  (make-counter 100)]
-         [elements (apply append (for/list ([sheet (in-list (workbook-sheets book))])
-                                   (number-formats-xml/internal! cache (worksheet-data sheet) next-id)))])
+         [elements (begin
+                     (cache-style-set! cache empty-number-format 0)
+                     (apply append (for/list ([sheet (in-list (workbook-sheets book))])
+                                   (number-formats-xml/internal! cache (worksheet-data sheet) next-id))))])
     (xml (numFmts (@ [count ,(length elements)])
                   ,@elements))))
 
@@ -20,12 +22,11 @@
 (define (number-formats-xml/internal! cache range next-id)
   
   (define fmt
-    (let ([style (range-style range)])
-      (and style (style-number-format style))))
+    (style-number-format (range-style range)))
   
   ; (U xml #f)
   (define current-xml
-    (cond [(not fmt) #f]
+    (cond [(empty-number-format? fmt) #f]
           [(cache-style-ref cache fmt #f) #f]
           [else (let* ([code        (number-format-code fmt)]
                        [built-in-id (built-in-id code)]

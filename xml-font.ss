@@ -8,7 +8,7 @@
 
 ; Procedures -------------------------------------
 
-; cache workbook -> listof xml
+; cache workbook -> xml
 (define (fonts-xml! cache book)
   (let* ([initial-font (make-font)]
          [next-pos     (make-counter 0)]
@@ -22,9 +22,7 @@
     
   ; font
   (define font
-    (if (range-style range)
-        (font-compose parent-font (style-font (range-style range)))
-        parent-font))
+    (compose-fonts parent-font (style-font (range-style range))))
   
   ; (U xml #f)
   (define current-xml

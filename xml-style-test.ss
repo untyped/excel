@@ -5,6 +5,7 @@
 (require "xml-cache.ss"
          "range.ss"
          "struct.ss"
+         "xml-fill.ss"
          "xml-font.ss"
          "xml-number-format.ss"
          "xml-style.ss")
@@ -49,6 +50,7 @@
         (begin
           (number-formats-xml! cache book)
           (fonts-xml! cache book)
+          (fills-xml! cache book)
           (styles-xml! cache book)))
       
       (check-eq? (cache-style-ref cache style1) 0)
@@ -57,18 +59,17 @@
       
       (check-equal?
        (xml->string data)
-       (xml->string (xml (cellStyleXfs (@ [count 4])
-                                       (xf)
-                                       (xf (@ [numFmtId 0]))
-                                       (xf (@ [numFmtId 100]))
-                                       (xf (@ [numFmtId 101]))))))
+       (xml->string (xml (cellXfs (@ [count 3])
+                                  (xf (@ [numFmtId   0] [fontId 0] [fillId 0]) ,(xml))
+                                  (xf (@ [numFmtId 100] [fontId 0] [fillId 0]) ,(xml))
+                                  (xf (@ [numFmtId 101] [fontId 0] [fillId 0]) ,(xml))))))
       
       (check-eq? (cache-cell-style-ref cache a1) (cache-style-ref cache style2))
       (check-eq? (cache-cell-style-ref cache a2) (cache-style-ref cache style2))
       (check-eq? (cache-cell-style-ref cache b1) (cache-style-ref cache style1))
       (check-eq? (cache-cell-style-ref cache b2) (cache-style-ref cache style3))
-      (check-false (cache-cell-style-ref cache c1))
-      (check-false (cache-cell-style-ref cache c2)))))
+      (check-eq? (cache-cell-style-ref cache c1) (cache-style-ref cache empty-style))
+      (check-eq? (cache-cell-style-ref cache c2) (cache-style-ref cache empty-style)))))
 
 ; Provide statements -----------------------------
 

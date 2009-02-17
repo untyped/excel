@@ -12,6 +12,24 @@
 ; (struct [0,1] [0,1] [0,1] [0,1])
 (define-struct (rgba-color color) (r g b a) #:transparent)
 
+; rgba-color -> string
+(define rgba-color-hex
+  (match-lambda
+    [(struct rgba-color (r g b a))
+     (let* ([hex-digit  (match-lambda
+                          [0  #\0] [1  #\1] [2  #\2] [3  #\3]
+                          [4  #\4] [5  #\5] [6  #\6] [7  #\7]
+                          [8  #\8] [9  #\9] [10 #\A] [11 #\B]
+                          [12 #\C] [13 #\D] [14 #\E] [15 #\F])]
+            [hex-digits (lambda (fraction)
+                          (let ([int (inexact->exact (floor (* fraction 255)))])
+                            (list (hex-digit (quotient int 16))
+                                  (hex-digit (remainder int 16)))))])
+       (apply string (append (hex-digits a)
+                             (hex-digits r)
+                             (hex-digits g)
+                             (hex-digits b))))]))
+
 ; Number formats ---------------------------------
 
 ; (struct (U string #f))
@@ -52,7 +70,7 @@
 (define-struct gradient-stop (position color) #:transparent)
 
 ; (struct color color natural)
-(define-struct (pattern-fill fill) (bg fg type) #:transparent)
+(define-struct (pattern-fill fill) (fg bg type) #:transparent)
 
 ; symbol
 (define-syntax (pattern-type stx)
@@ -103,20 +121,18 @@
 (define degrees/c
   (integer-in 0 359))
 
-(define inexact-fraction/c
-  (and/c number?
-         (or/c integer? inexact?)
-         (>=/c 0)
-         (<=/c 1)))
+(define fraction/c
+  (and/c number? (>=/c 0) (<=/c 1)))
 
 (provide pattern-type)
 
 (provide/contract
  [struct color                       ()]
- [struct (rgba-color color)          ([r               inexact-fraction/c]
-                                      [g               inexact-fraction/c]
-                                      [b               inexact-fraction/c]
-                                      [a               inexact-fraction/c])]
+ [struct (rgba-color color)          ([r               fraction/c]
+                                      [g               fraction/c]
+                                      [b               fraction/c]
+                                      [a               fraction/c])]
+ [rgba-color-hex                     (-> rgba-color? string?)]
  [struct number-format               ([code            (or/c string? #f)])]
  [struct font                        ([name            (or/c string? #f)]
                                       [size            (or/c string? #f)]
@@ -136,16 +152,16 @@
                                       [locked-raw      (or/c boolean? void?)])]
  [struct fill                        ()]
  [struct (empty-fill fill)           ()]
- [struct (pattern-fill fill)         ([bg              color?]
-                                      [fg              color?]
+ [struct (pattern-fill fill)         ([fg              color?]
+                                      [bg              color?]
                                       [type            pattern-type?])]
  [struct (linear-gradient-fill fill) ([angle           degrees/c]
                                       [stops           (listof gradient-stop?)])]
- [struct (path-gradient-fill fill)   ([top             inexact-fraction/c] 
-                                      [right           inexact-fraction/c]
-                                      [bottom          inexact-fraction/c]
-                                      [left            inexact-fraction/c]
+ [struct (path-gradient-fill fill)   ([top             fraction/c] 
+                                      [right           fraction/c]
+                                      [bottom          fraction/c]
+                                      [left            fraction/c]
                                       [stops           (listof gradient-stop?)])]
- [struct gradient-stop               ([position        inexact-fraction/c]
+ [struct gradient-stop               ([position        fraction/c]
                                       [color           color?])]
  [pattern-type?                      (-> any/c boolean?)])

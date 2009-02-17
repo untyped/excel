@@ -74,8 +74,8 @@
       (check-eq?   (cache-style-ref cache font1) 0)
       (check-false (cache-style-ref cache font2 #f))
       (check-false (cache-style-ref cache font3 #f))
-      (check-eq?   (cache-style-ref cache (font-compose font1 font2)) 1)
-      (check-eq?   (cache-style-ref cache (font-compose font1 font3)) 2)
+      (check-eq?   (cache-style-ref cache (compose-fonts font1 font2)) 1)
+      (check-eq?   (cache-style-ref cache (compose-fonts font1 font3)) 2)
       
       (check-equal?
        (xml->string data)

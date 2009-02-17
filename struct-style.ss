@@ -128,6 +128,10 @@
 
 ; fill
 (define empty-fill (make-empty-fill))
+(define gray-125-fill
+  (make-pattern-fill (make-rgba-color 0 0 0 1)
+                     (make-rgba-color 1 1 1 1)
+                     (pattern-type gray-125)))
 
 ; Styles -----------------------------------------
 
@@ -236,6 +240,7 @@
  [solid-fill?                                    (-> fill? boolean?)]
  [compose-fills                                  (-> fill? fill? fill?)]
  [empty-fill                                     fill?]
+ [gray-125-fill                                  fill?]
  [rename create-style make-style                 (->* ()
                                                       (#:number-format number-format?
                                                                        #:font    font?

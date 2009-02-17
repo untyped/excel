@@ -39,20 +39,22 @@
     
     (test-case "sheet+xy->ref"
       (check-equal? (sheet+xy->ref #f 0 0) "A1")
-      (check-equal? (sheet+xy->ref (make-worksheet "Sheet1") 0 0) "[Sheet1]!A1")
-      (check-equal? (sheet+xy->ref (make-worksheet "Sheet1") 26 26 #t #f) "[Sheet1]!$AA27"))
+      (check-equal? (sheet+xy->ref (make-worksheet "Sheet1" (make-cell 123)) 0 0)
+                    "Sheet1!A1")
+      (check-equal? (sheet+xy->ref (make-worksheet "Sheet1" (make-cell 123)) 26 26 #t #f)
+                    "Sheet1!$AA27"))
     
     (test-case "ref->xy"
       (check-equal? (call-with-values (cut ref->xy "A2") list) (list 0 1))
       (check-equal? (call-with-values (cut ref->xy "a2") list) (list 0 1))
       (check-equal? (call-with-values (cut ref->xy "$A$2") list) (list 0 1))
-      (check-equal? (call-with-values (cut ref->xy "[Sheet1]!$A$2") list) (list 0 1)))
+      (check-equal? (call-with-values (cut ref->xy "Sheet1!$A$2") list) (list 0 1)))
     
     (test-case "ref->sheet+xy"
       (check-equal? (call-with-values (cut ref->sheet+xy "A2") list) (list #f 0 1))
       (check-equal? (call-with-values (cut ref->sheet+xy "a2") list) (list #f 0 1))
       (check-equal? (call-with-values (cut ref->sheet+xy "$A$2") list) (list #f 0 1))
-      (check-equal? (call-with-values (cut ref->sheet+xy "[Sheet1]!$A$2") list)
+      (check-equal? (call-with-values (cut ref->sheet+xy "Sheet1!$A$2") list)
                     (list "Sheet1" 0 1)))))
 
 ; Provide statements -----------------------------

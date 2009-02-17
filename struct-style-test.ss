@@ -17,7 +17,13 @@
       (check-not-exn (cut make-rgba-color 0 0 0 0))
       (check-not-exn (cut make-rgba-color 1 1 1 1))
       (check-exn exn:fail:contract? (cut make-rgba-color 1.1 1.1 1.1 1.1))
-      (check-exn exn:fail:contract? (cut make-rgba-color 1/2 1/2 1/2 1/2)))
+      (check-not-exn (cut make-rgba-color 1/2 1/2 1/2 1/2)))
+    
+    (test-case "rgba-color-hex"
+      (check-equal? (rgba-color-hex (make-rgba-color 0   0   0   0))   "00000000")
+      (check-equal? (rgba-color-hex (make-rgba-color 1   1   1   1))   "FFFFFFFF")
+      (check-equal? (rgba-color-hex (make-rgba-color 0.25 0.5 0.75 1)) "FF3F7FBF")
+      (check-equal? (rgba-color-hex (make-rgba-color 1/4 2/4 3/4 4/4)) "FF3F7FBF"))
     
     (test-case "compose-normal"
       (check-equal? (compose-normal (lambda (x) x) 12 #f) 12)
@@ -58,6 +64,12 @@
                                    (make-font #:bold? #f #:italic? #f))
                     (make-font #:bold? #f #:italic? #f #:underline? #t)))
     
+    (test-equal? "make-solid-fill"
+      (make-solid-fill (make-rgba-color 1 1 1 1))
+      (make-pattern-fill (make-rgba-color 1 1 1 1)
+                         (make-rgba-color 1 1 1 1)
+                         (pattern-type solid)))
+    
     (test-case "empty-fill?"
       (check-true  (empty-fill? (make-empty-fill)))
       (check-true  (empty-fill? empty-fill))
@@ -69,6 +81,17 @@
       (check-false (empty-fill? (make-pattern-fill (make-rgba-color 0 0 0 0)
                                                    (make-rgba-color 1 1 1 1)
                                                    (pattern-type dark-gray)))))
+    
+    (test-case "compose-fills"
+      (check-equal? (compose-fills empty-fill
+                                   (make-solid-fill (make-rgba-color 1 1 1 1)))
+                    (make-solid-fill (make-rgba-color 1 1 1 1)))
+      (check-equal? (compose-fills (make-solid-fill (make-rgba-color 0 0 0 0))
+                                   empty-fill)
+                    (make-solid-fill (make-rgba-color 0 0 0 0)))
+      (check-equal? (compose-fills (make-solid-fill (make-rgba-color 0 0 0 0))
+                                   (make-solid-fill (make-rgba-color 1 1 1 1)))
+                    (make-solid-fill (make-rgba-color 1 1 1 1))))
     
     (test-case "empty-style?"
       (check-true  (empty-style? (make-style)))
@@ -85,9 +108,9 @@
             [font1 (make-font #:name "Dave")]
             [font2 (make-font #:name "David")])
         (check-equal? (compose-styles (make-style #:number-format fmt1
-                                                 #:font          font1)
-                                     (make-style #:number-format fmt2
-                                                 #:hidden?       #f))
+                                                  #:font          font1)
+                                      (make-style #:number-format fmt2
+                                                  #:hidden?       #f))
                       (make-style #:number-format fmt2
                                   #:font font1
                                   #:hidden? #f))
