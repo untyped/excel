@@ -115,13 +115,17 @@
 ;         (U line #f)
 ;         (U line #f)
 ;         (U line #f)
+;         (U line #f)
+;         (U line #f)
+;         (U boolean void)
 ;         (U boolean void)
 ;         (U boolean void))
 (define-struct border
-  (top right bottom left diagonal diagonal-down-raw diagonal-up-raw)
+  (top right bottom left horizontal vertical diagonal outline-raw diagonal-down-raw diagonal-up-raw)
   #:transparent)
 
 ; border -> boolean
+(define (border-outline?       border) (eq? (border-outline-raw       border) #t))
 (define (border-diagonal-down? border) (eq? (border-diagonal-down-raw border) #t))
 (define (border-diagonal-up?   border) (eq? (border-diagonal-up-raw   border) #t))
 
@@ -312,9 +316,13 @@
                                       [right             (or/c line? #f)]
                                       [bottom            (or/c line? #f)]
                                       [left              (or/c line? #f)]
+                                      [horizontal        (or/c line? #f)]
+                                      [vertical          (or/c line? #f)]
                                       [diagonal          (or/c line? #f)]
+                                      [outline-raw       (or/c boolean? void?)]
                                       [diagonal-down-raw (or/c boolean? void?)]
                                       [diagonal-up-raw   (or/c boolean? void?)])]
+ [border-outline?                    (-> border? boolean?)]
  [border-diagonal-down?              (-> border? boolean?)]
  [border-diagonal-up?                (-> border? boolean?)]
  [struct line                        ([style border-style?]
