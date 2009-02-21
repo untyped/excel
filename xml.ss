@@ -6,10 +6,6 @@
          "path.ss"
          "ref.ss"
          "struct.ss"
-         "xml-border.ss"
-         "xml-fill.ss"
-         "xml-font.ss"
-         "xml-number-format.ss"
          "xml-style.ss"
          "formula/formula.ss")
 
@@ -94,43 +90,37 @@
 
 ; cache workbook -> xml
 (define (workbook-styles-xml cache book)
-  (let* ([number-formats-xml (number-formats-xml! cache book)]
-         [fonts-xml          (fonts-xml!          cache book)]
-         [fills-xml          (fills-xml!          cache book)]
-         [borders-xml        (borders-xml!        cache book)]
-         [styles-xml         (styles-xml!         cache book)])
-    (xml ,standalone-header-xml
-         (styleSheet (@ [xmlns ,spreadsheetml-namespace])
-                     ,number-formats-xml
-                     ,fonts-xml
-                     ,fills-xml
-                     ,borders-xml
-                     ,styles-xml))))
+  (xml ,standalone-header-xml
+       (styleSheet (@ [xmlns ,spreadsheetml-namespace])
+                   ,(styles-xml! cache book))))
 
 ; cache worksheet -> xml
 (define (worksheet-xml cache sheet)
   (xml ,standalone-header-xml
        (worksheet (@ [xmlns   ,spreadsheetml-namespace]
                      [xmlns:r ,workbook-namespace])
-                  (sheetData ,@(for/list ([item (in-list (cache-worksheet-data cache sheet))])
-                                 (define y (car item))
-                                 (define row (cdr item))
-                                 (xml (row (@ [r ,(y->row y)])
-                                           ,@(for/list ([item (in-list row)])
-                                               (define x (car item))
-                                               (define cell (cdr item))
-                                               (define style (cache-cell-style-ref cache cell))
-                                               (match (cell-value cell)
-                                                 [(? number? n)      (xml (c (@ [r ,(xy->ref x y)] ,(opt-xml-attr style s style))
-                                                                             (v ,n)))]
-                                                 [#t                 (xml (c (@ [r ,(xy->ref x y)] ,(opt-xml-attr style s style) [t "b"])
-                                                                             (v 1)))]
-                                                 [(or (? string? s)
-                                                      (? symbol? s)) (xml (c (@ [r ,(xy->ref x y)] ,(opt-xml-attr style s style) [t "inlineStr"])
-                                                                             (is (t ,s))))]
-                                                 [(? formula? f)     (xml (c (@ [r ,(xy->ref x y)] ,(opt-xml-attr style s style))
-                                                                             ,(formula-xml cache sheet cell f)))]
-                                                 [#f                 (xml (c (@ [r ,(xy->ref x y)] ,(opt-xml-attr style s style))))]))))))
+                  (sheetData ,@(for/list ([y (in-range (range-height (worksheet-data sheet)))])
+                                 (let ([cells (for/list ([x (in-range (range-width  (worksheet-data sheet)))])
+                                                (let-values ([(cell s) (cache-forward-ref cache sheet x y)])
+                                                  (opt-xml s
+                                                    ,(let ([r (xy->ref x y)])
+                                                       (if cell
+                                                           (match (cell-value cell)
+                                                             [#t              (xml (c (@ [r ,r] [s ,s] [t "b"]) (v 1)))]
+                                                             [#f              (xml (c (@ [r ,r] [s ,s])))]
+                                                             [(? number? n)   (xml (c (@ [r ,r] [s ,s]) (v ,n)))]
+                                                             [(? string? str) (xml (c (@ [r ,r] [s ,s] [t "inlineStr"]) (is (t ,str))))]
+                                                             [(? symbol? sym) (xml (c (@ [r ,r] [s ,s] [t "inlineStr"]) (is (t ,sym))))]
+                                                             [(? bytes?  byt) (xml (c (@ [r ,r] [s ,s] [t "inlineStr"]) (is (t ,byt))))]
+                                                             [(? formula? f)  (xml (c (@ [r ,r] [s ,s])
+                                                                                      (f (@ ,@(if (formula-array? f)
+                                                                                                  (xml-attrs [t "array"] [aca "true"] [ref ,r])
+                                                                                                  (xml-attrs)))
+                                                                                         ,(expression->string cache sheet (formula-expr f)))))])
+                                                           (xml (c (@ [r ,r] [s ,s]))))))))])
+                                   (opt-xml (not (andmap xml-empty? cells))
+                                     (row (@ [r ,(y->row y)])
+                                               ,@cells)))))
                   (sheetProtection (@ [autoFilter          ,(if (worksheet-auto-filter-lock?             sheet) "true" "false")]
                                       [deleteColumns       ,(if (worksheet-delete-columns-lock?          sheet) "true" "false")]
                                       [deleteRows          ,(if (worksheet-delete-rows-lock?             sheet) "true" "false")]
@@ -147,13 +137,6 @@
                                       [selectUnlockedCells ,(if (worksheet-unlocked-cell-selection-lock? sheet) "true" "false")]
                                       [sheet               ,(if (worksheet-sheet-lock?                   sheet) "true" "false")]
                                       [sort                ,(if (worksheet-sort-lock?                    sheet) "true" "false")])))))
-
-; cache worksheet cell formula -> xml
-(define (formula-xml cache sheet cell formula)
-  (xml (f (@ ,@(if (formula-array? formula)
-                   (xml-attrs [t "array"] [aca "true"] [ref ,(cache-ref cache sheet cell)])
-                   (xml-attrs)))
-          ,(expression->string cache sheet (formula-expr formula)))))
 
 ; Provide statements -----------------------------
 

@@ -34,7 +34,7 @@
   (dynamic-wind
    void
    (lambda ()
-     (let ([cache (make-cache book)])
+     (let ([cache (make-cache)])
        (make-directory temp-dir)
        (parameterize ([current-directory temp-dir])
          (make-directory* (build-path "_rels"))
@@ -47,8 +47,8 @@
                 (write-xml-file (package-part-path book) (workbook-xml book))
                 (write-xml-file (workbook-relationships-path book) (workbook-relationships-xml book))
                 (write-xml-file (workbook-styles-path book) (workbook-styles-xml cache book))
-              (for/list ([sheet (in-list (workbook-sheets book))])
-                (write-xml-file (package-part-path sheet) (worksheet-xml cache sheet))))))
+                (for/list ([sheet (in-list (workbook-sheets book))])
+                  (write-xml-file (package-part-path sheet) (worksheet-xml cache sheet))))))
      (unless (file-exists? zip-path)
        (error "file was not created")))
    (lambda ()

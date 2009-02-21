@@ -124,13 +124,26 @@
                 style)))
 
 ; range style -> range
-(define (apply-style range style)
+(define (style-range range style)
   (if style
       (make-union (list (make-part range 0 0))
                   (range-width range)
                   (range-height range)
                   style)
       range))
+
+; range [border-style] [color] -> range
+(define (outline-range range [border-style (border-style thin)] [color (rgb 0 0 0)])
+  (let* ([w    (sub1 (range-width  range))]
+         [h    (sub1 (range-height range))]
+         [line (make-line border-style color)])
+    (style-range range
+                 (make-uncompiled-style
+                  (lambda (x y)
+                    (make-compiled-style #:border (make-border #:top    (and (= y 0) line)
+                                                               #:right  (and (= x w) line)
+                                                               #:bottom (and (= y h) line)
+                                                               #:left   (and (= x 0) line))))))))
 
 ; Helpers ----------------------------------------
 
@@ -171,14 +184,15 @@
 ; Provide statements -----------------------------
 
 (provide/contract
- [hc-append   (->* () (#:style style?) #:rest (listof range+quotable?) union?)]
- [ht-append   (->* () (#:style style?) #:rest (listof range+quotable?) union?)]
- [hb-append   (->* () (#:style style?) #:rest (listof range+quotable?) union?)]
- [vc-append   (->* () (#:style style?) #:rest (listof range+quotable?) union?)]
- [vl-append   (->* () (#:style style?) #:rest (listof range+quotable?) union?)]
- [vr-append   (->* () (#:style style?) #:rest (listof range+quotable?) union?)]
- [l-pad       (->* (range+quotable?) (natural-number/c #:style style?) range?)]
- [r-pad       (->* (range+quotable?) (natural-number/c #:style style?) range?)]
- [t-pad       (->* (range+quotable?) (natural-number/c #:style style?) range?)]
- [b-pad       (->* (range+quotable?) (natural-number/c #:style style?) range?)]
- [apply-style (-> range? style? range?)])
+ [hc-append     (->* () (#:style style?) #:rest (listof range+quotable?) union?)]
+ [ht-append     (->* () (#:style style?) #:rest (listof range+quotable?) union?)]
+ [hb-append     (->* () (#:style style?) #:rest (listof range+quotable?) union?)]
+ [vc-append     (->* () (#:style style?) #:rest (listof range+quotable?) union?)]
+ [vl-append     (->* () (#:style style?) #:rest (listof range+quotable?) union?)]
+ [vr-append     (->* () (#:style style?) #:rest (listof range+quotable?) union?)]
+ [l-pad         (->* (range+quotable?) (natural-number/c #:style style?) range?)]
+ [r-pad         (->* (range+quotable?) (natural-number/c #:style style?) range?)]
+ [t-pad         (->* (range+quotable?) (natural-number/c #:style style?) range?)]
+ [b-pad         (->* (range+quotable?) (natural-number/c #:style style?) range?)]
+ [style-range   (-> range? style? range?)]
+ [outline-range (->* (range?) (border-style? color?) range?)])

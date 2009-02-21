@@ -64,11 +64,11 @@
 
 ; Range wrappers ---------------------------------
 
-; (listof part) natural natural [#:style style] -> union
+; (listof part) natural natural [style] -> union
 (define (create-union parts x y [style empty-style])
   (make-union style parts x y))
 
-; any [#:style style] -> cell
+; any [style] -> cell
 (define (create-cell val [style empty-style])
   (make-cell style val))
 
@@ -90,6 +90,21 @@
       null
       (for/list ([part (in-list (union-parts range))])
         (part-range part))))
+
+; Part wrappers ----------------------------------
+
+; part integer integer -> boolean
+;
+; Coordinates are in the coordinate system of part's parent range.
+(define (part-contains? part x y)
+  (let* ([x0 (part-dx part)]
+         [y0 (part-dy part)]
+         [x1 (+ x0 (range-width (part-range part)))]
+         [y1 (+ y0 (range-height (part-range part)))])
+    (and (>= x x0)
+         (>= y y0)
+         (< x x1)
+         (< y y1))))
 
 ; Provide statements -----------------------------
 
@@ -125,4 +140,5 @@
  [rename create-cell      make-cell      (->* (any/c) (style?) cell?)]
  [range-children                         (-> range? (listof range?))]
  [range-width                            (-> range? natural-number/c)]
- [range-height                           (-> range? natural-number/c)])
+ [range-height                           (-> range? natural-number/c)]
+ [part-contains?                         (-> part? natural-number/c natural-number/c boolean?)])

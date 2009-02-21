@@ -250,13 +250,23 @@
 
 ; Styles -----------------------------------------
 
+; (struct)
+(define-struct style () #:transparent)
+
 ; (struct number-format
 ;         font
 ;         fill
 ;         alignment
 ;         (U boolean void)
 ;         (U boolean void))
-(define-struct style (number-format font fill border alignment hidden-raw locked-raw) #:transparent)
+(define-struct (compiled-style style)
+  (number-format font fill border alignment hidden-raw locked-raw)
+  #:transparent)
+
+; (struct (natural natural -> static-style))
+(define-struct (uncompiled-style style)
+  (proc)
+  #:transparent)
 
 ; Provide statements -----------------------------
 
@@ -345,10 +355,12 @@
  [reading-orders                     (listof symbol?)]
  [reading-order?                     (-> any/c boolean?)]
  [reading-order-code                 (-> reading-order? natural-number/c)]
- [struct style                       ([number-format         number-format?]
+ [struct style                       ()]
+ [struct (compiled-style style)      ([number-format         number-format?]
                                       [font                  font?]
                                       [fill                  fill?]
                                       [border                border?]
                                       [alignment             alignment?]
                                       [hidden-raw            (or/c boolean? void?)]
-                                      [locked-raw            (or/c boolean? void?)])])
+                                      [locked-raw            (or/c boolean? void?)])]
+ [struct (uncompiled-style style)    ([proc                  (-> natural-number/c natural-number/c compiled-style?)])])

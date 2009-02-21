@@ -56,7 +56,10 @@
 
 ; cache worksheet cell boolean boolean output-port -> void
 (define (display-cell-reference cache sheet cell abs-x? abs-y? out)
-  (display (cache-ref cache sheet cell abs-x? abs-y?) out))
+  (let-values ([(other-sheet x y) (cache-reverse-ref cache cell)])
+    (if (eq? sheet other-sheet)
+        (display (xy->ref                   x y abs-x? abs-y?) out)
+        (display (sheet+xy->ref other-sheet x y abs-x? abs-y?) out))))
 
 ; cache worksheet (U symbol string) (listof expression) output-port [string] [string] -> void
 ; Wraps parentheses around the expression.

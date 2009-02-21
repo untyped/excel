@@ -202,7 +202,6 @@
       (check-true (border-style? (border-style medium-dash-dot)))
       (check-true (border-style? (border-style medium-dash-dot-dot)))
       (check-true (border-style? (border-style medium-dashed)))
-      (check-true (border-style? (border-style medium-dotted)))
       (check-true (border-style? (border-style slant-dash-dot))))
     
     (test-case "empty-alignment?"
@@ -263,33 +262,75 @@
       (check-equal? (reading-order-code (reading-order left-to-right))     1)
       (check-equal? (reading-order-code (reading-order right-to-left))     2))
     
-    (test-case "empty-style?"
-      (check-true  (empty-style? (make-style)))
-      (check-true  (empty-style? empty-style))
-      (check-true  (empty-style? (make-style #:number-format (make-number-format #f))))
-      (check-false (empty-style? (make-style #:number-format (make-number-format "0"))))
-      (check-true  (empty-style? (make-style #:font (make-font #:name #f))))
-      (check-false (empty-style? (make-style #:font (make-font #:name "Dave"))))
-      (check-false (empty-style? (make-style #:hidden? #f)))
-      (check-false (empty-style? (make-style #:locked? #f))))
+    #;(test-case "empty-style?"
+        (check-true  (empty-style? (make-style)))
+        (check-true  (empty-style? empty-style))
+        (check-true  (empty-style? (make-style #:number-format (make-number-format #f))))
+        (check-false (empty-style? (make-style #:number-format (make-number-format "0"))))
+        (check-true  (empty-style? (make-style #:font (make-font #:name #f))))
+        (check-false (empty-style? (make-style #:font (make-font #:name "Dave"))))
+        (check-false (empty-style? (make-style #:hidden? #f)))
+        (check-false (empty-style? (make-style #:locked? #f))))
+    
+    (test-case "compile-style"
+      ; Pre-compiled styles:
+      (check-eq? (compile-style empty-style 0 0) empty-style)
+      ; Uncompiled styles:
+      (let ([uncompiled (make-uncompiled-style
+                         (lambda (x y)
+                           (make-compiled-style #:fill (make-solid-fill (rgb x y 1)))))])
+        (check-equal? (compile-style uncompiled 0 0)
+                      (make-compiled-style #:fill (make-solid-fill (rgb 0 0 1))))
+        (check-equal? (compile-style uncompiled 1 0)
+                      (make-compiled-style #:fill (make-solid-fill (rgb 1 0 1))))))
+    
+    (test-case "translate-style"
+      ; Compiled styles:
+      (check-eq? (compile-style (translate-style empty-style 0 0) 0 0) empty-style)
+      ; Uncompiled styles:
+      (let ([uncompiled (make-uncompiled-style
+                         (lambda (x y)
+                           (make-compiled-style #:fill (make-solid-fill (rgb x y 1)))))])
+        (check-equal? (compile-style uncompiled 0 0)
+                      (make-compiled-style #:fill (make-solid-fill (rgb 0 0 1))))
+        (check-equal? (compile-style uncompiled 1 0)
+                      (make-compiled-style #:fill (make-solid-fill (rgb 1 0 1))))))
     
     (test-case "compose-styles"
-      (let ([fmt1  (make-number-format #f)]
-            [fmt2  (make-number-format "0")]
-            [font1 (make-font #:name "Arial")]
-            [font2 (make-font #:name "Helvetica")])
-        (check-equal? (compose-styles (make-style #:number-format fmt1
-                                                  #:font          font1)
-                                      (make-style #:number-format fmt2
-                                                  #:hidden?       #f))
-                      (make-style #:number-format fmt2
-                                  #:font font1
-                                  #:hidden? #f))
-        (check-equal? (compose-styles (make-style) (make-style #:number-format fmt2))
-                      (make-style #:number-format fmt2))
-        (check-equal? (compose-styles (make-style #:number-format fmt1) (make-style))
-                      (make-style #:number-format fmt1))
-        (check-equal? (compose-styles (make-style) (make-style)) (make-style))))))
+      ; Compiled styles:
+      (let ([check-compose (cut check-compose compose-styles empty-style <> <>)])
+        (check-compose (make-compiled-style #:fill (make-solid-fill (rgb 1 0 0)))
+                       (make-compiled-style #:fill (make-solid-fill (rgb 1 0 0)))))
+      ; Uncompiled styles:
+      (let* ([style1  (make-uncompiled-style
+                       (lambda (x y)
+                         (make-compiled-style #:fill (make-solid-fill (rgb x .5 .5)))))]
+             [style2  (make-uncompiled-style
+                       (lambda (x y)
+                         (make-compiled-style #:fill (make-solid-fill (rgb .5 x .5))
+                                              #:font (make-font #:size y))))]
+             [style12 (compose-styles style1 style2)]
+             [style21 (compose-styles style2 style1)])
+        (check-equal? (compile-style style12 1 5)
+                      (make-compiled-style #:fill (make-solid-fill (rgb .5 1 .5))
+                                           #:font (make-font #:size 5)))
+        (check-equal? (compile-style style21 1 5)
+                      (make-compiled-style #:fill (make-solid-fill (rgb 1 .5 .5))
+                                           #:font (make-font #:size 5))))
+      ; Mix of compiled and uncompiled styles:
+      (let* ([style1  (make-compiled-style #:fill (make-solid-fill (rgb .25 .25 .25)))]
+             [style2  (make-uncompiled-style
+                       (lambda (x y)
+                         (make-compiled-style #:fill (make-solid-fill (rgb .5 x .5))
+                                              #:font (make-font #:size y))))]
+             [style12 (compose-styles style1 style2)]
+             [style21 (compose-styles style2 style1)])
+        (check-equal? (compile-style style12 1 5)
+                      (make-compiled-style #:fill (make-solid-fill (rgb .5 1 .5))
+                                           #:font (make-font #:size 5)))
+        (check-equal? (compile-style style21 1 5)
+                      (make-compiled-style #:fill (make-solid-fill (rgb .25 .25 .25))
+                                           #:font (make-font #:size 5)))))))
 
 ; Provide statements -----------------------------
 
