@@ -5,6 +5,7 @@
 (require "range.ss"
          "struct.ss"
          "xml-cache.ss"
+         "xml-internal.ss"
          "xml-style.ss")
 
 (require/expose "xml-style.ss"
@@ -116,14 +117,16 @@
                              #:hidden?       #t
                              #:locked?       #f)
                             3 4 5 6)
-                 (xml (xf (@ [numFmtId       3]
-                             [fontId         4]
-                             [fillId         5]
-                             [borderId       6]
-                             [applyFont      "true"]
-                             [applyFill      "true"]
-                             [applyBorder    "true"]
-                             [applyAlignment "true"])
+                 (xml (xf (@ [numFmtId          3]
+                             [fontId            4]
+                             [fillId            5]
+                             [borderId          6]
+                             [applyNumberFormat "true"]
+                             [applyFont         "true"]
+                             [applyFill         "true"]
+                             [applyBorder       "true"]
+                             [applyAlignment    "true"]
+                             [applyProtection   "true"])
                           (alignment  (@ [horizontal      "left"]
                                          [vertical        "top"]
                                          [wrapText        "true"]
@@ -136,9 +139,9 @@
                           (protection (@ [hidden "true"]
                                          [locked "false"]))))))
     
-    (test-case "styles-xml!"
+    (test-case "stylesheet-xml!"
       (check-xml
-       (styles-xml!
+       (stylesheet-xml!
         (make-cache)
         (make-workbook
          (list (make-worksheet
@@ -167,111 +170,114 @@
                                       (make-compiled-style #:font (make-font #:italic? #t))
                                       2 3 4)
                            5)))))
-       (xml (numFmts (@ [count "0"])
-                     ,(xml))
-            (fonts   (@ [count "5"])
-                     (font ,(xml))
-                     (font (sz (@ [val "0"])))
-                     (font (sz (@ [val "1"])))
-                     (font (sz (@ [val "2"])))
-                     (font (i)))
-            (fills   (@ [count "3"])
-                     (fill (patternFill (@ [patternType "none"])))
-                     (fill (patternFill (@ [patternType "gray125"])
-                                        (fgColor (@ [rgb "FF000000"]))
-                                        (bgColor (@ [rgb "FFFFFFFF"]))))
-                     (fill (patternFill (@ [patternType "solid"])
-                                        (fgColor (@ [rgb "FF19334C"]))
-                                        (bgColor (@ [rgb "FF19334C"])))))
-            (borders (@ [count "9"])
-                     (border ,(xml))
-                     (border (left   (@ [style "thin"]) ,(xml)))
-                     (border (top    (@ [style "thin"]) ,(xml)))
-                     (border (bottom (@ [style "thin"]) ,(xml)))
-                     (border (right  (@ [style "thin"]) ,(xml)))
-                     (border (left   (@ [style "thin"]) ,(xml))
-                             (top    (@ [style "thin"]) ,(xml)))
-                     (border (right  (@ [style "thin"]) ,(xml))
-                             (top    (@ [style "thin"]) ,(xml)))
-                     (border (left   (@ [style "thin"]) ,(xml))
-                             (bottom (@ [style "thin"]) ,(xml)))
-                     (border (right  (@ [style "thin"]) ,(xml))
-                             (bottom (@ [style "thin"]) ,(xml))))
-            (cellXfs (@ [count "14"])
-                     (xf (@ [numFmtId    "0"]
-                            [fontId      "0"]
-                            [fillId      "0"]
-                            [borderId    "0"]) ,(xml))
-                     (xf (@ [numFmtId    "0"]
-                            [fontId      "0"]
-                            [fillId      "2"]
-                            [borderId    "0"]
-                            [applyFill   "true"]) ,(xml))
-                     (xf (@ [numFmtId    "0"]
-                            [fontId      "1"]
-                            [fillId      "2"]
-                            [borderId    "0"]
-                            [applyFont   "true"]
-                            [applyFill   "true"]) ,(xml))
-                     (xf (@ [numFmtId    "0"]
-                            [fontId      "2"]
-                            [fillId      "2"]
-                            [borderId    "0"]
-                            [applyFont   "true"]
-                            [applyFill   "true"]) ,(xml))
-                     (xf (@ [numFmtId    "0"]
-                            [fontId      "3"]
-                            [fillId      "2"]
-                            [borderId    "0"]
-                            [applyFont   "true"]
-                            [applyFill   "true"]) ,(xml))
-                     (xf (@ [numFmtId    "0"]
-                            [fontId      "0"]
-                            [fillId      "0"]
-                            [borderId    "1"]
-                            [applyBorder "true"]) ,(xml))
-                     (xf (@ [numFmtId    "0"]
-                            [fontId      "4"]
-                            [fillId      "0"]
-                            [borderId    "2"]
-                            [applyFont   "true"]
-                            [applyBorder "true"]) ,(xml))
-                     (xf (@ [numFmtId    "0"]
-                            [fontId      "4"]
-                            [fillId      "0"]
-                            [borderId    "0"]
-                            [applyFont   "true"]) ,(xml))
-                     (xf (@ [numFmtId    "0"]
-                            [fontId      "4"]
-                            [fillId      "0"]
-                            [borderId    "3"]
-                            [applyFont   "true"]
-                            [applyBorder "true"]) ,(xml))
-                     (xf (@ [numFmtId    "0"]
-                            [fontId      "0"]
-                            [fillId      "0"]
-                            [borderId    "4"]
-                            [applyBorder "true"]) ,(xml))
-                     (xf (@ [numFmtId    "0"]
-                            [fontId      "0"]
-                            [fillId      "0"]
-                            [borderId    "5"]
-                            [applyBorder "true"]) ,(xml))
-                     (xf (@ [numFmtId    "0"]
-                            [fontId      "0"]
-                            [fillId      "0"]
-                            [borderId    "6"]
-                            [applyBorder "true"]) ,(xml))
-                     (xf (@ [numFmtId    "0"]
-                            [fontId      "0"]
-                            [fillId      "0"]
-                            [borderId    "7"]
-                            [applyBorder "true"]) ,(xml))
-                     (xf (@ [numFmtId    "0"]
-                            [fontId      "0"]
-                            [fillId      "0"]
-                            [borderId    "8"]
-                            [applyBorder "true"]) ,(xml))))))))
+       (xml ,standalone-header-xml
+            (styleSheet (@ [xmlns ,spreadsheetml-namespace])
+                        (numFmts (@ [count "0"])
+                                 ,(xml))
+                        (fonts   (@ [count "5"])
+                                 (font ,(xml))
+                                 (font (sz (@ [val "0"])))
+                                 (font (sz (@ [val "1"])))
+                                 (font (sz (@ [val "2"])))
+                                 (font (i)))
+                        (fills   (@ [count "3"])
+                                 (fill (patternFill (@ [patternType "none"])))
+                                 (fill (patternFill (@ [patternType "gray125"])
+                                                    (fgColor (@ [rgb "FF000000"]))
+                                                    (bgColor (@ [rgb "FFFFFFFF"]))))
+                                 (fill (patternFill (@ [patternType "solid"])
+                                                    (fgColor (@ [rgb "FF19334C"]))
+                                                    (bgColor (@ [rgb "FF19334C"])))))
+                        (borders (@ [count "9"])
+                                 (border ,(xml))
+                                 (border (left   (@ [style "thin"]) ,(xml)))
+                                 (border (top    (@ [style "thin"]) ,(xml)))
+                                 (border (bottom (@ [style "thin"]) ,(xml)))
+                                 (border (right  (@ [style "thin"]) ,(xml)))
+                                 (border (left   (@ [style "thin"]) ,(xml))
+                                         (top    (@ [style "thin"]) ,(xml)))
+                                 (border (right  (@ [style "thin"]) ,(xml))
+                                         (top    (@ [style "thin"]) ,(xml)))
+                                 (border (left   (@ [style "thin"]) ,(xml))
+                                         (bottom (@ [style "thin"]) ,(xml)))
+                                 (border (right  (@ [style "thin"]) ,(xml))
+                                         (bottom (@ [style "thin"]) ,(xml))))
+                        (cellXfs (@ [count "14"])
+                                 (xf (@ [numFmtId    "0"]
+                                        [fontId      "0"]
+                                        [fillId      "0"]
+                                        [borderId    "0"]) ,(xml))
+                                 (xf (@ [numFmtId    "0"]
+                                        [fontId      "0"]
+                                        [fillId      "2"]
+                                        [borderId    "0"]
+                                        [applyFill   "true"]) ,(xml))
+                                 (xf (@ [numFmtId    "0"]
+                                        [fontId      "1"]
+                                        [fillId      "2"]
+                                        [borderId    "0"]
+                                        [applyFont   "true"]
+                                        [applyFill   "true"]) ,(xml))
+                                 (xf (@ [numFmtId    "0"]
+                                        [fontId      "2"]
+                                        [fillId      "2"]
+                                        [borderId    "0"]
+                                        [applyFont   "true"]
+                                        [applyFill   "true"]) ,(xml))
+                                 (xf (@ [numFmtId    "0"]
+                                        [fontId      "3"]
+                                        [fillId      "2"]
+                                        [borderId    "0"]
+                                        [applyFont   "true"]
+                                        [applyFill   "true"]) ,(xml))
+                                 (xf (@ [numFmtId    "0"]
+                                        [fontId      "0"]
+                                        [fillId      "0"]
+                                        [borderId    "1"]
+                                        [applyBorder "true"]) ,(xml))
+                                 (xf (@ [numFmtId    "0"]
+                                        [fontId      "4"]
+                                        [fillId      "0"]
+                                        [borderId    "2"]
+                                        [applyFont   "true"]
+                                        [applyBorder "true"]) ,(xml))
+                                 (xf (@ [numFmtId    "0"]
+                                        [fontId      "4"]
+                                        [fillId      "0"]
+                                        [borderId    "0"]
+                                        [applyFont   "true"]) ,(xml))
+                                 (xf (@ [numFmtId    "0"]
+                                        [fontId      "4"]
+                                        [fillId      "0"]
+                                        [borderId    "3"]
+                                        [applyFont   "true"]
+                                        [applyBorder "true"]) ,(xml))
+                                 (xf (@ [numFmtId    "0"]
+                                        [fontId      "0"]
+                                        [fillId      "0"]
+                                        [borderId    "4"]
+                                        [applyBorder "true"]) ,(xml))
+                                 (xf (@ [numFmtId    "0"]
+                                        [fontId      "0"]
+                                        [fillId      "0"]
+                                        [borderId    "5"]
+                                        [applyBorder "true"]) ,(xml))
+                                 (xf (@ [numFmtId    "0"]
+                                        [fontId      "0"]
+                                        [fillId      "0"]
+                                        [borderId    "6"]
+                                        [applyBorder "true"]) ,(xml))
+                                 (xf (@ [numFmtId    "0"]
+                                        [fontId      "0"]
+                                        [fillId      "0"]
+                                        [borderId    "7"]
+                                        [applyBorder "true"]) ,(xml))
+                                 (xf (@ [numFmtId    "0"]
+                                        [fontId      "0"]
+                                        [fillId      "0"]
+                                        [borderId    "8"]
+                                        [applyBorder "true"]) ,(xml)))
+                        (dxfs (@ [count "0"]) ,(xml))))))))
 
 ; Provide statements -----------------------------
 

@@ -56,7 +56,7 @@
 
 ; cache worksheet cell boolean boolean output-port -> void
 (define (display-cell-reference cache sheet cell abs-x? abs-y? out)
-  (let-values ([(other-sheet x y) (cache-reverse-ref cache cell)])
+  (let-values ([(other-sheet x y) (cache-address-ref cache cell)])
     (if (eq? sheet other-sheet)
         (display (xy->ref                   x y abs-x? abs-y?) out)
         (display (sheet+xy->ref other-sheet x y abs-x? abs-y?) out))))

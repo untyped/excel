@@ -46,7 +46,7 @@
                 (write-xml-file (package-relationships-path) (package-relationships-xml book))
                 (write-xml-file (package-part-path book) (workbook-xml book))
                 (write-xml-file (workbook-relationships-path book) (workbook-relationships-xml book))
-                (write-xml-file (workbook-styles-path book) (workbook-styles-xml cache book))
+                (write-xml-file (stylesheet-path book) (stylesheet-xml! cache book))
                 (for/list ([sheet (in-list (workbook-sheets book))])
                   (write-xml-file (package-part-path sheet) (worksheet-xml cache sheet))))))
      (unless (file-exists? zip-path)

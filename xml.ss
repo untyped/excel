@@ -6,36 +6,10 @@
          "path.ss"
          "ref.ss"
          "struct.ss"
+         "xml-internal.ss"
          "xml-style.ss"
+         "xml-worksheet.ss"
          "formula/formula.ss")
-
-; xml
-(define standalone-header-xml
-  (xml (!raw "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>")))
-
-; Reversed part IDs ------------------------------
-
-(define workbook-styles-part-id            "stylesPart")
-
-; Namespaces -------------------------------------
-
-(define content-types-namespace            "http://schemas.openxmlformats.org/package/2006/content-types")
-(define package-relationships-namespace    "http://schemas.openxmlformats.org/package/2006/relationships")
-(define spreadsheetml-namespace            "http://schemas.openxmlformats.org/spreadsheetml/2006/main")
-(define workbook-namespace                 "http://schemas.openxmlformats.org/officeDocument/2006/relationships")
-(define worksheet-namespace                "http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet")
-(define workbook-styles-namespace          "http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles")
-
-; Content types ----------------------------------
-
-(define package-relationships-content-type "application/vnd.openxmlformats-package.relationships+xml")
-(define workbook-content-type              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml")
-(define worksheet-content-type             "application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml")
-(define workbook-styles-content-type       "application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml")
-
-; Relationships ----------------------------------
-
-(define office-document-relationship       "http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument")
 
 ; Content ----------------------------------------
 
@@ -46,7 +20,7 @@
               (Default  (@ [Extension "rels"]
                            [ContentType ,package-relationships-content-type]))
               (Override (@ [PartName "/xl/styles.xml"]
-                           [ContentType ,workbook-styles-content-type]))
+                           [ContentType ,stylesheet-content-type]))
               ,@(for/list ([part (in-list (cons book (workbook-sheets book)))])
                   (xml (Override (@ [PartName     ,(path->string (package-part-path part #:absolute? #t))]
                                     [ContentType  ,(match part
@@ -79,8 +53,8 @@
       (xml ,standalone-header-xml
            (Relationships
             (@ [xmlns ,package-relationships-namespace])
-            (Relationship (@ [Id     ,workbook-styles-part-id]
-                             [Type   ,workbook-styles-namespace]
+            (Relationship (@ [Id     ,stylesheet-part-id]
+                             [Type   ,stylesheet-namespace]
                              [Target "styles.xml"]))
             ,@(for/list ([sheet (in-list (workbook-sheets book))])
                 (xml (Relationship
@@ -88,57 +62,10 @@
                          [Type   ,worksheet-namespace]
                          [Target ,(path->string (package-part-path sheet #:relative-to xl-path))])))))))))
 
-; cache workbook -> xml
-(define (workbook-styles-xml cache book)
-  (xml ,standalone-header-xml
-       (styleSheet (@ [xmlns ,spreadsheetml-namespace])
-                   ,(styles-xml! cache book))))
-
-; cache worksheet -> xml
-(define (worksheet-xml cache sheet)
-  (xml ,standalone-header-xml
-       (worksheet (@ [xmlns   ,spreadsheetml-namespace]
-                     [xmlns:r ,workbook-namespace])
-                  (sheetData ,@(for/list ([y (in-range (range-height (worksheet-data sheet)))])
-                                 (let ([cells (for/list ([x (in-range (range-width  (worksheet-data sheet)))])
-                                                (let-values ([(cell s) (cache-forward-ref cache sheet x y)])
-                                                  (opt-xml s
-                                                    ,(let ([r (xy->ref x y)])
-                                                       (if cell
-                                                           (match (cell-value cell)
-                                                             [#t              (xml (c (@ [r ,r] [s ,s] [t "b"]) (v 1)))]
-                                                             [#f              (xml (c (@ [r ,r] [s ,s])))]
-                                                             [(? number? n)   (xml (c (@ [r ,r] [s ,s]) (v ,n)))]
-                                                             [(? string? str) (xml (c (@ [r ,r] [s ,s] [t "inlineStr"]) (is (t ,str))))]
-                                                             [(? symbol? sym) (xml (c (@ [r ,r] [s ,s] [t "inlineStr"]) (is (t ,sym))))]
-                                                             [(? bytes?  byt) (xml (c (@ [r ,r] [s ,s] [t "inlineStr"]) (is (t ,byt))))]
-                                                             [(? formula? f)  (xml (c (@ [r ,r] [s ,s])
-                                                                                      (f (@ ,@(if (formula-array? f)
-                                                                                                  (xml-attrs [t "array"] [aca "true"] [ref ,r])
-                                                                                                  (xml-attrs)))
-                                                                                         ,(expression->string cache sheet (formula-expr f)))))])
-                                                           (xml (c (@ [r ,r] [s ,s]))))))))])
-                                   (opt-xml (not (andmap xml-empty? cells))
-                                     (row (@ [r ,(y->row y)])
-                                               ,@cells)))))
-                  (sheetProtection (@ [autoFilter          ,(if (worksheet-auto-filter-lock?             sheet) "true" "false")]
-                                      [deleteColumns       ,(if (worksheet-delete-columns-lock?          sheet) "true" "false")]
-                                      [deleteRows          ,(if (worksheet-delete-rows-lock?             sheet) "true" "false")]
-                                      [formatCells         ,(if (worksheet-format-cells-lock?            sheet) "true" "false")]
-                                      [formatColumns       ,(if (worksheet-format-columns-lock?          sheet) "true" "false")]
-                                      [formatRows          ,(if (worksheet-format-rows-lock?             sheet) "true" "false")]
-                                      [insertColumns       ,(if (worksheet-insert-columns-lock?          sheet) "true" "false")]
-                                      [insertHyperlinks    ,(if (worksheet-insert-hyperlinks-lock?       sheet) "true" "false")]
-                                      [insertRows          ,(if (worksheet-insert-rows-lock?             sheet) "true" "false")]
-                                      [objects             ,(if (worksheet-objects-lock?                 sheet) "true" "false")]
-                                      [pivotTables         ,(if (worksheet-pivot-tables-lock?            sheet) "true" "false")]
-                                      [scenarios           ,(if (worksheet-scenarios-lock?               sheet) "true" "false")]
-                                      [selectLockedCells   ,(if (worksheet-locked-cell-selection-lock?   sheet) "true" "false")]
-                                      [selectUnlockedCells ,(if (worksheet-unlocked-cell-selection-lock? sheet) "true" "false")]
-                                      [sheet               ,(if (worksheet-sheet-lock?                   sheet) "true" "false")]
-                                      [sort                ,(if (worksheet-sort-lock?                    sheet) "true" "false")])))))
-
 ; Provide statements -----------------------------
+
+(provide stylesheet-xml!
+         worksheet-xml)
 
 (provide/contract
  [standalone-header-xml      xml?]
@@ -147,6 +74,4 @@
  [content-types-xml          (-> workbook? xml?)]
  [package-relationships-xml  (-> workbook? xml?)]
  [workbook-xml               (-> workbook? xml?)]
- [workbook-relationships-xml (-> workbook? xml?)]
- [workbook-styles-xml        (-> cache? workbook? xml?)]
- [worksheet-xml              (-> cache? worksheet? xml?)])
+ [workbook-relationships-xml (-> workbook? xml?)])

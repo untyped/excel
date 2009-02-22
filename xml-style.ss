@@ -9,147 +9,146 @@
 ; Procedures -------------------------------------
 
 ; cache workbook -> xml
-(define (styles-xml! cache book)
-  
-  ; (hashof (U number-format font etc...) natural)
-  (define style-hash (make-hash))
+(define (stylesheet-xml! cache book)
   
   ; (box (listof xml))
-  (define fmt-accum    (box null))
-  (define font-accum   (box null))
-  (define fill-accum   (box null))
-  (define border-accum (box null))
-  (define style-accum  (box null))
+  (define fmt-accum              (box null))
+  (define font-accum             (box null))
+  (define fill-accum             (box null))
+  (define border-accum           (box null))
+  (define style-accum            (box null))
+  (define diff-style-accum       (box null))
   
-  ; number-format  -> natural
-  ; font           -> natural
-  ; etc...
-  (define consume-number-format! (make-number-format-consumer style-hash fmt-accum))
-  (define consume-font!          (make-font-consumer          style-hash font-accum))
-  (define consume-fill!          (make-fill-consumer          style-hash fill-accum))
-  (define consume-border!        (make-border-consumer        style-hash border-accum))
-  (define consume-style!         (make-style-consumer         style-hash style-accum))
+  ; number-format -> natural
+  (define consume-number-format!
+    (make-number-format-consumer cache fmt-accum))
   
-  ; worksheet natural natural (U cell #f) style -> void
-  (define (accumulate! sheet x y cell style)
-    (let ([style-id (consume-style!
-                     style
-                     (consume-number-format! (compiled-style-number-format style))
-                     (consume-font!          (compiled-style-font          style))
-                     (consume-fill!          (compiled-style-fill          style))
-                     (consume-border!        (compiled-style-border        style)))])
-      (cache-forward-set! cache sheet x y cell style-id)
-      (when cell (cache-reverse-set! cache cell sheet x y))))
+  ; font -> natural
+  (define consume-font!
+    (make-font-consumer cache font-accum))
   
-  ; void
+  ; fill -> natural
+  (define consume-fill!
+    (make-fill-consumer cache fill-accum))
+  
+  ; border -> natural
+  (define consume-border!
+    (make-border-consumer cache border-accum))
+  
+  ; style natural natural -> natural
+  (define consume-style!
+    (let ([consume-style/internal! (make-style-consumer cache style-accum)])
+      (lambda (style0 x y)
+        (let ([style (compile-style style0 x y)])
+          (consume-style/internal!
+           style
+           (consume-number-format! (compiled-style-number-format style))
+           (consume-font!          (compiled-style-font          style))
+           (consume-fill!          (compiled-style-fill          style))
+           (consume-border!        (compiled-style-border        style)))))))
+  
+  ; compiled-style -> natural
+  (define consume-diff-style!
+    (make-diff-style-consumer cache diff-style-accum))
+  
   (for ([sheet (in-list (workbook-sheets book))])
-    (range-fold (worksheet-data sheet) empty-style (cut accumulate! sheet <> <> <> <>)))
+    ; Traverse the wokrsheet tree accumulating:
+    ;   - "style" mappings   : (U number-format font fill border compiled-style) -> natural
+    ;   - "value" mappings   : sheet x y -> (U cell #f) style-id
+    ;   - "address" mappings : cell -> sheet x y
+    ; 
+    ; We need all of this information to render the worksheet data and conditional formatting rules later.
+    (range-for-each
+     ; range
+     (worksheet-data sheet)
+     ; compose/range : range style natural natural -> style
+     (lambda (range style x y)
+       (compose-styles style (range-style range)))
+     ; compose/part  : part style -> style
+     (lambda (part style)
+       (translate-style style (part-dx part) (part-dy part)))
+     ; consume!      : range style natural natural -> void
+     (lambda (range style x0 y0)
+       ; Unions: cache style and value mappings for empty (x,y) coords:
+       (when (union? range)
+         (let ([parts (union-parts range)])
+           (for* ([y (in-range (range-height range))]
+                  [x (in-range (range-width  range))])
+                 (unless (ormap (cut part-contains? <> x y) parts)
+                   (let ([style-id (consume-style! style x y)])
+                     (unless (zero? style-id)
+                       (cache-value-set! cache sheet (+ x0 x) (+ y0 y) #f style-id)))))))
+       ; Cells: cache style, value and address mappings:
+       (when (cell? range)
+         (let ([style-id (consume-style! style 0 0)])
+           (cache-value-set! cache sheet x0 y0 range style-id)
+           (cache-address-set! cache range sheet x0 y0)))
+       ; Unions and cells: cache style mappings for diff styles:
+       (for ([cf (in-list (range-conditional-formats range))])
+         (consume-diff-style! (conditional-format-style cf))))
+     ; accum0        : style
+     empty-style))
   
   ; xml
-  (xml (numFmts (@ [count ,(length (unbox fmt-accum))])
-                ,@(reverse (unbox fmt-accum)))
-       (fonts   (@ [count ,(length (unbox font-accum))])
-                ,@(reverse (unbox font-accum)))
-       (fills   (@ [count ,(length (unbox fill-accum))])
-                ,@(reverse (unbox fill-accum)))
-       (borders (@ [count ,(length (unbox border-accum))])
-                ,@(reverse (unbox border-accum)))
-       (cellXfs (@ [count ,(length (unbox style-accum))])
-                ,@(reverse (unbox style-accum)))))
-
-; cache workbook -> xml
-(define (conditional-formatting-xml! cache book)
-  
-  ; (hashof (U number-format font etc...) natural)
-  (define style-hash (make-hash))
-  
-  ; (box (listof xml))
-  (define fmt-accum    (box null))
-  (define font-accum   (box null))
-  (define fill-accum   (box null))
-  (define border-accum (box null))
-  (define style-accum  (box null))
-  
-  ; number-format  -> natural
-  ; font           -> natural
-  ; etc...
-  (define consume-number-format! (make-number-format-consumer style-hash fmt-accum))
-  (define consume-font!          (make-font-consumer          style-hash font-accum))
-  (define consume-fill!          (make-fill-consumer          style-hash fill-accum))
-  (define consume-border!        (make-border-consumer        style-hash border-accum))
-  (define consume-style!         (make-style-consumer         style-hash style-accum))
-  
-  ; worksheet natural natural (U cell #f) style -> void
-  (define (accumulate! sheet x y cell style)
-    (let ([style-id (consume-style!
-                     style
-                     (consume-number-format! (compiled-style-number-format style))
-                     (consume-font!          (compiled-style-font          style))
-                     (consume-fill!          (compiled-style-fill          style))
-                     (consume-border!        (compiled-style-border        style)))])
-      (cache-forward-set! cache sheet x y cell style-id)
-      (when cell (cache-reverse-set! cache cell sheet x y))))
-  
-  ; void
-  (for ([sheet (in-list (workbook-sheets book))])
-    (range-fold (worksheet-data sheet) empty-style (cut accumulate! sheet <> <> <> <>)))
-  
-  ; xml
-  (xml (numFmts (@ [count ,(length (unbox fmt-accum))])
-                ,@(reverse (unbox fmt-accum)))
-       (fonts   (@ [count ,(length (unbox font-accum))])
-                ,@(reverse (unbox font-accum)))
-       (fills   (@ [count ,(length (unbox fill-accum))])
-                ,@(reverse (unbox fill-accum)))
-       (borders (@ [count ,(length (unbox border-accum))])
-                ,@(reverse (unbox border-accum)))
-       (cellXfs (@ [count ,(length (unbox style-accum))])
-                ,@(reverse (unbox style-accum)))))
+  (xml ,standalone-header-xml
+       (styleSheet (@ [xmlns ,spreadsheetml-namespace])
+                   (numFmts (@ [count ,(length (unbox fmt-accum))])
+                            ,@(reverse (unbox fmt-accum)))
+                   (fonts   (@ [count ,(length (unbox font-accum))])
+                            ,@(reverse (unbox font-accum)))
+                   (fills   (@ [count ,(length (unbox fill-accum))])
+                            ,@(reverse (unbox fill-accum)))
+                   (borders (@ [count ,(length (unbox border-accum))])
+                            ,@(reverse (unbox border-accum)))
+                   (cellXfs (@ [count ,(length (unbox style-accum))])
+                            ,@(reverse (unbox style-accum)))
+                   (dxfs    (@ [count ,(length (unbox diff-style-accum))])
+                            ,@(reverse (unbox diff-style-accum))))))
 
 ; Style element consumers ------------------------
 
-; (hashof number-format natural) (box (listof number-format)) -> (number-format -> natural)
-(define (make-number-format-consumer hash accum)
+; cache (box (listof number-format)) -> (number-format -> natural)
+(define (make-number-format-consumer cache accum)
   ; -> natural
   (define next-id (make-counter 100))
   
   ; number-format -> natural
   (define (consume! fmt)
-    (or (hash-ref hash fmt #f)
+    (or (cache-style-ref cache fmt #f)
         (let ([id (next-id)])
-          (hash-set! hash fmt id)
+          (cache-style-set! cache fmt id)
           (set-box! accum (cons (number-format-xml fmt id) (unbox accum)))
           id)))
   
-  (hash-set! hash empty-number-format 0)
+  (cache-style-set! cache empty-number-format 0)
   consume!)
 
-; (hashof font natural) (box (listof font)) -> (font -> natural)
-(define (make-font-consumer hash accum)
+; cache (box (listof font)) -> (font -> natural)
+(define (make-font-consumer cache accum)
   ; -> natural
   (define next-id (make-counter 0))
   
   ; font -> natural
   (define (consume! font)
-    (or (hash-ref hash font #f)
+    (or (cache-style-ref cache font #f)
         (let ([id (next-id)])
-          (hash-set! hash font id)
+          (cache-style-set! cache font id)
           (set-box! accum (cons (font-xml font) (unbox accum)))
           id)))
   
   (consume! empty-font)
   consume!)
 
-; (hashof fill natural) (box (listof fill)) -> (fill -> natural)
-(define (make-fill-consumer hash accum)
+; cache (box (listof fill)) -> (fill -> natural)
+(define (make-fill-consumer cache accum)
   ; -> natural
   (define next-id (make-counter 0))
   
   ; fill -> natural
   (define (consume! fill)
-    (or (hash-ref hash fill #f)
+    (or (cache-style-ref cache fill #f)
         (let ([id (next-id)])
-          (hash-set! hash fill id)
+          (cache-style-set! cache fill id)
           (set-box! accum (cons (fill-xml fill) (unbox accum)))
           id)))
   
@@ -157,43 +156,60 @@
   (consume! gray-125-fill)
   consume!)
 
-; (hashof border natural) (box (listof border)) -> (border -> natural)
-(define (make-border-consumer hash accum)
+; cache (box (listof border)) -> (border -> natural)
+(define (make-border-consumer cache accum)
   ; -> natural
   (define next-id (make-counter 0))
   
   ; border -> natural
   (define (consume! border)
-    (or (hash-ref hash border #f)
+    (or (cache-style-ref cache border #f)
         (let ([id (next-id)])
-          (hash-set! hash border id)
+          (cache-style-set! cache border id)
           (set-box! accum (cons (border-xml border) (unbox accum)))
           id)))
   
   (consume! empty-border)
   consume!)
 
-; (hashof style natural) (box (listof style)) -> (style natural natural natural natural -> natural)
-(define (make-style-consumer hash accum)
+; cache (box (listof style)) -> (style natural natural natural natural -> natural)
+(define (make-style-consumer cache accum)
   ; -> natural
   (define next-id (make-counter 0))
   
   ; border -> natural
   (define (consume! style fmt-id font-id fill-id border-id)
-    (or (hash-ref hash style #f)
+    (or (cache-style-ref cache style #f)
         (let ([id (next-id)])
-          (hash-set! hash style id)
-          (set-box! accum (cons (style-xml style fmt-id font-id fill-id border-id) (unbox accum)))
+          (cache-style-set! cache style id)
+          (set-box! accum (cons (style-xml style fmt-id font-id fill-id border-id)
+                                (unbox accum)))
           id)))
   
   (consume! empty-style 0 0 0 0)
   consume!)
 
+; cache (box (listof style)) -> (style -> natural)
+(define (make-diff-style-consumer cache accum)
+  ; -> natural
+  (define next-id (make-counter 0))
+  
+  ; border -> natural
+  (define (consume! style)
+    (or (cache-diff-style-ref cache style #f)
+        (let ([id (next-id)])
+          (cache-diff-style-set! cache style id)
+          (set-box! accum (cons (diff-style-xml style) (unbox accum)))
+          id)))
+  
+  consume!)
+
 ; XML fragment constructors ----------------------
 
-; number-format natural -> xml
-(define (number-format-xml fmt id)
-  (xml (numFmt (@ [numFmtId ,id] [formatCode ,(number-format-code fmt)]))))
+; number-format [(U natural #f)] -> xml
+(define (number-format-xml fmt [numFmtId #f])
+  (xml (numFmt (@ ,(opt-xml-attr numFmtId)
+                  [formatCode ,(number-format-code fmt)]))))
 
 ; font -> xml
 (define font-xml
@@ -261,7 +277,29 @@
     (opt-xml (not (equal? hex "FF000000"))
       (color (@ [rgb ,(rgba-color-hex (line-color line))])))))
 
-; style natural natural natural natural -> xml
+; alignment -> xml
+(define alignment-xml
+  (match-lambda
+    [(? empty-alignment?)
+     (xml)]
+    [(struct alignment (horizontal vertical wrapText shrinkToFit textRotation readingOrder justifyLastLine indent relativeIndent))
+     (xml (alignment (@ ,(opt-xml-attr horizontal)
+                        ,(opt-xml-attr vertical)
+                        ,(opt-xml-attr (boolean? wrapText) wrapText (if wrapText "true" "false"))
+                        ,(opt-xml-attr (boolean? shrinkToFit) shrinkToFit (if shrinkToFit "true" "false"))
+                        ,(opt-xml-attr textRotation)
+                        ,(opt-xml-attr readingOrder readingOrder (reading-order-code readingOrder))
+                        ,(opt-xml-attr (boolean? justifyLastLine) justifyLastLine (if justifyLastLine "true" "false"))
+                        ,(opt-xml-attr indent)
+                        ,(opt-xml-attr relativeIndent))))]))
+
+; (U boolean void) (U boolean void) -> xml
+(define (protection-xml hidden-raw locked-raw)
+  (opt-xml (or (boolean? hidden-raw) (boolean? locked-raw))
+    (protection (@ ,(opt-xml-attr (boolean? hidden-raw) hidden (if hidden-raw "true" "false"))
+                   ,(opt-xml-attr (boolean? locked-raw) locked (if locked-raw "true" "false"))))))
+
+; compiled-style natural natural natural natural -> xml
 (define (style-xml style numFmtId fontId fillId borderId)
   (match style
     [(struct compiled-style (fmt font fill border align hidden-raw locked-raw))
@@ -269,28 +307,34 @@
                  ,(opt-xml-attr fontId)
                  ,(opt-xml-attr fillId)
                  ,(opt-xml-attr borderId)
-                 ,(opt-xml-attr (not (empty-font?      font))   applyFont      "true")
-                 ,(opt-xml-attr (not (empty-fill?      fill))   applyFill      "true")
-                 ,(opt-xml-attr (not (empty-border?    border)) applyBorder    "true")
-                 ,(opt-xml-attr (not (empty-alignment? align))  applyAlignment "true"))
-              ,(match align
-                 [(? empty-alignment?)
-                  (xml)]
-                 [(struct alignment (horizontal vertical wrapText shrinkToFit textRotation readingOrder justifyLastLine indent relativeIndent))
-                  (xml (alignment (@ ,(opt-xml-attr horizontal)
-                                     ,(opt-xml-attr vertical)
-                                     ,(opt-xml-attr (boolean? wrapText) wrapText (if wrapText "true" "false"))
-                                     ,(opt-xml-attr (boolean? shrinkToFit) shrinkToFit (if shrinkToFit "true" "false"))
-                                     ,(opt-xml-attr textRotation)
-                                     ,(opt-xml-attr readingOrder readingOrder (reading-order-code readingOrder))
-                                     ,(opt-xml-attr (boolean? justifyLastLine) justifyLastLine (if justifyLastLine "true" "false"))
-                                     ,(opt-xml-attr indent)
-                                     ,(opt-xml-attr relativeIndent))))])
-              ,(opt-xml (or (boolean? hidden-raw) (boolean? locked-raw))
-                 (protection (@ ,(opt-xml-attr (boolean? hidden-raw) hidden (if hidden-raw "true" "false"))
-                                ,(opt-xml-attr (boolean? locked-raw) locked (if locked-raw "true" "false")))))))]))
+                 ,(opt-xml-attr (not (empty-number-format? fmt))    applyNumberFormat "true")
+                 ,(opt-xml-attr (not (empty-font?          font))   applyFont         "true")
+                 ,(opt-xml-attr (not (empty-fill?          fill))   applyFill         "true")
+                 ,(opt-xml-attr (not (empty-border?        border)) applyBorder       "true")
+                 ,(opt-xml-attr (not (empty-alignment?     align))  applyAlignment    "true")
+                 ,(opt-xml-attr (or (boolean? hidden-raw) (boolean? locked-raw))
+                    applyProtection "true"))
+              ,(alignment-xml align)
+              ,(protection-xml hidden-raw locked-raw)))]))
+
+; compiled-style -> xml
+(define (diff-style-xml style)
+  (match style
+    [(struct compiled-style (fmt font fill border align hidden-raw locked-raw))
+     (xml (dxf ,(opt-xml (not (empty-font? font))
+                  ,(font-xml font))
+               ,(opt-xml (not (empty-number-format? fmt))
+                  ,(number-format-xml fmt))
+               ,(opt-xml (not (empty-fill? fill))
+                  ,(fill-xml fill))
+               ,(opt-xml (not (empty-alignment? align))
+                  ,(alignment-xml align))
+               ,(opt-xml (not (empty-border? border))
+                  ,(border-xml border))
+               ,(opt-xml (or (boolean? hidden-raw) (boolean? locked-raw))
+                  ,(protection-xml hidden-raw locked-raw))))]))
 
 ; Provide statements -----------------------------
 
 (provide/contract
- [styles-xml! (-> cache? workbook? xml?)])
+ [stylesheet-xml! (-> cache? workbook? xml?)])

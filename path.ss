@@ -39,7 +39,7 @@
 ;  [#:absolute? boolean]
 ; ->
 ;  path
-(define (workbook-styles-path book #:relative-to [relative-to-path #f] #:absolute? [absolute? #f])
+(define (stylesheet-path book #:relative-to [relative-to-path #f] #:absolute? [absolute? #f])
   (format-path (build-path "xl/styles.xml")
                #:relative-to relative-to-path
                #:absolute?   absolute?))
@@ -91,5 +91,5 @@
  [content-types-path          (->* () (#:relative-to (or/c relative-path/c #f) #:absolute? boolean?) path?)]
  [package-relationships-path  (->* () (#:relative-to (or/c relative-path/c #f) #:absolute? boolean?) path?)]
  [workbook-relationships-path (->* (workbook?) (#:relative-to (or/c relative-path/c #f) #:absolute? boolean?) path?)]
- [workbook-styles-path        (->* (workbook?) (#:relative-to (or/c relative-path/c #f) #:absolute? boolean?) path?)]
+ [stylesheet-path             (->* (workbook?) (#:relative-to (or/c relative-path/c #f) #:absolute? boolean?) path?)]
  [package-part-path           (->* (package-part?) (#:relative-to (or/c relative-path/c #f) #:absolute? boolean?) path?)])

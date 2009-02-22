@@ -88,7 +88,7 @@
                                                   (outline-range (make-matrix 3 3))))
                                 (l-pad (vl-append "Thick"
                                                   (outline-range (make-matrix 3 3)
-                                                           (border-style thick))))
+                                                                 (border-style thick))))
                                 (l-pad (vl-append "Thick red"
                                                   (outline-range (make-matrix 3 3)
                                                                  (border-style thick)
@@ -142,11 +142,35 @@
                      (for/list ([o (in-list reading-orders)])
                        (make-cell (format "Order: ~a" o) (make-compiled-style #:alignment (make-alignment #:reading-order o))))))))
 
+; Conditional formatting -------------------------
+
+(define conditional-format-sheet
+  (make-worksheet
+   "Conditional formatting"
+   (vl-append (make-cell "CONDITIONAL FORMATTING" heading-style)
+              (t-pad (ht-append "Constants"
+                                (let ([cfs (list (make-conditional-format (condition-type cell-is)
+                                                                          (fx (* 1 1))
+                                                                          (make-compiled-style #:fill (make-solid-fill (rgb 1 .5 .5)))
+                                                                          1)
+                                                 (make-conditional-format (condition-type cell-is)
+                                                                          (fx (* 2 1))
+                                                                          (make-compiled-style #:font (make-font #:bold? #t))
+                                                                          2)
+                                                 (make-conditional-format (condition-type cell-is)
+                                                                          (fx (* 3 1))
+                                                                          (make-compiled-style #:border (make-border #:left (make-line) #:right (make-line)))
+                                                                          3))])
+                                  (l-pad (vl-append (make-cell 1 empty-style cfs)
+                                                    (make-cell 2 empty-style cfs)
+                                                    (make-cell 3 empty-style cfs)))))))))
+
 ; Workbook ---------------------------------------
 
 (write-workbook (make-workbook (list fill-sheet 
                                      border-sheet
                                      alignment-sheet
-                                     compound-sheet))
+                                     compound-sheet
+                                     conditional-format-sheet))
                 (build-path (current-directory) "swatch.xlsx")
                 #:exists 'replace)
