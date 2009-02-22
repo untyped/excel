@@ -57,6 +57,55 @@
        (cellXfs (@ [count ,(length (unbox style-accum))])
                 ,@(reverse (unbox style-accum)))))
 
+; cache workbook -> xml
+(define (conditional-formatting-xml! cache book)
+  
+  ; (hashof (U number-format font etc...) natural)
+  (define style-hash (make-hash))
+  
+  ; (box (listof xml))
+  (define fmt-accum    (box null))
+  (define font-accum   (box null))
+  (define fill-accum   (box null))
+  (define border-accum (box null))
+  (define style-accum  (box null))
+  
+  ; number-format  -> natural
+  ; font           -> natural
+  ; etc...
+  (define consume-number-format! (make-number-format-consumer style-hash fmt-accum))
+  (define consume-font!          (make-font-consumer          style-hash font-accum))
+  (define consume-fill!          (make-fill-consumer          style-hash fill-accum))
+  (define consume-border!        (make-border-consumer        style-hash border-accum))
+  (define consume-style!         (make-style-consumer         style-hash style-accum))
+  
+  ; worksheet natural natural (U cell #f) style -> void
+  (define (accumulate! sheet x y cell style)
+    (let ([style-id (consume-style!
+                     style
+                     (consume-number-format! (compiled-style-number-format style))
+                     (consume-font!          (compiled-style-font          style))
+                     (consume-fill!          (compiled-style-fill          style))
+                     (consume-border!        (compiled-style-border        style)))])
+      (cache-forward-set! cache sheet x y cell style-id)
+      (when cell (cache-reverse-set! cache cell sheet x y))))
+  
+  ; void
+  (for ([sheet (in-list (workbook-sheets book))])
+    (range-fold (worksheet-data sheet) empty-style (cut accumulate! sheet <> <> <> <>)))
+  
+  ; xml
+  (xml (numFmts (@ [count ,(length (unbox fmt-accum))])
+                ,@(reverse (unbox fmt-accum)))
+       (fonts   (@ [count ,(length (unbox font-accum))])
+                ,@(reverse (unbox font-accum)))
+       (fills   (@ [count ,(length (unbox fill-accum))])
+                ,@(reverse (unbox fill-accum)))
+       (borders (@ [count ,(length (unbox border-accum))])
+                ,@(reverse (unbox border-accum)))
+       (cellXfs (@ [count ,(length (unbox style-accum))])
+                ,@(reverse (unbox style-accum)))))
+
 ; Style element consumers ------------------------
 
 ; (hashof number-format natural) (box (listof number-format)) -> (number-format -> natural)

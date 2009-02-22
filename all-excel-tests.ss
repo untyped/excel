@@ -7,6 +7,7 @@
          "ref-test.ss"
          "struct-style-test.ss"
          "struct-test.ss"
+         "swatch-test.ss"
          "xml-style-test.ss"
          "xml-test.ss")
 
@@ -18,6 +19,7 @@
     struct-style-tests
     struct-tests
     xml-style-tests
-    xml-tests))
+    xml-tests
+    swatch-tests))
 
 (provide all-excel-tests)

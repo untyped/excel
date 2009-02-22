@@ -186,16 +186,29 @@
 
 ; border border -> border
 (define (compose-borders border1 border2)
-  (make-border (compose-normal  border-top               border1 border2)
-               (compose-normal  border-right             border1 border2)
-               (compose-normal  border-bottom            border1 border2)
-               (compose-normal  border-left              border1 border2)
-               (compose-normal  border-horizontal        border1 border2)
-               (compose-normal  border-vertical          border1 border2)
-               (compose-normal  border-diagonal          border1 border2)
+  (make-border (compose-line    border-top               border1 border2)
+               (compose-line    border-right             border1 border2)
+               (compose-line    border-bottom            border1 border2)
+               (compose-line    border-left              border1 border2)
+               (compose-line    border-horizontal        border1 border2)
+               (compose-line    border-vertical          border1 border2)
+               (compose-line    border-diagonal          border1 border2)
                (compose-boolean border-outline-raw       border1 border2)
                (compose-boolean border-diagonal-down-raw border1 border2)
                (compose-boolean border-diagonal-up-raw   border1 border2)))
+
+; (border -> (U line #f)) border border -> (U line #f)
+(define (compose-line accessor border1 border2)
+  (let ([line1 (accessor border1)]
+        [line2 (accessor border2)])
+    (if line1
+        (if line2
+            (if (> (border-style-priority (line-style line1))
+                   (border-style-priority (line-style line2)))
+                line1
+                line2)
+            line1)
+        line2)))
 
 ; border
 (define empty-border (create-border))

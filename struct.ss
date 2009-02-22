@@ -64,13 +64,13 @@
 
 ; Range wrappers ---------------------------------
 
-; (listof part) natural natural [style] -> union
-(define (create-union parts x y [style empty-style])
-  (make-union style parts x y))
+; (listof part) natural natural [style] [(listof conditional-format)] -> union
+(define (create-union parts x y [style empty-style] [conditional-formats null])
+  (make-union style conditional-formats parts x y))
 
-; any [style] -> cell
-(define (create-cell val [style empty-style])
-  (make-cell style val))
+; any [style] [(listof conditional-format)] -> cell
+(define (create-cell val [style empty-style] [conditional-formats null])
+  (make-cell style conditional-formats val))
 
 ; range -> natural
 (define (range-width range)
@@ -136,8 +136,12 @@
                                                     #:sheet-lock?                   boolean?
                                                     #:sort-lock?                    boolean?)
                                               worksheet?)]
- [rename create-union     make-union     (->* ((listof part?) natural-number/c natural-number/c) (style?) union?)]
- [rename create-cell      make-cell      (->* (any/c) (style?) cell?)]
+ [rename create-union     make-union     (->* ((listof part?) natural-number/c natural-number/c)
+                                              (style? (listof conditional-format?))
+                                              union?)]
+ [rename create-cell      make-cell      (->* (any/c)
+                                              (style? (listof conditional-format?))
+                                              cell?)]
  [range-children                         (-> range? (listof range?))]
  [range-width                            (-> range? natural-number/c)]
  [range-height                           (-> range? natural-number/c)]

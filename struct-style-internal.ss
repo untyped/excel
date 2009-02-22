@@ -158,6 +158,26 @@
   '(none hair thin medium thick double dotted dashed dashDot dashDotDot
          medium mediumDashed mediumDashDot mediumDashDotDot slantDashDot))
 
+; border-style -> natural
+;
+; Used to determine priority when composing lines.
+(define border-style-priority
+  (match-lambda
+    ['none              0]
+    ['hair             10]
+    ['dotted           16]
+    ['dashDotDot       17]
+    ['dashDot          18]
+    ['dashed           19]
+    ['thin             20]
+    ['mediumDashDotDot 26]
+    ['mediumDashDot    27]
+    ['mediumDashed     28]
+    ['slantDashDot     29]
+    ['medium           30]
+    ['thick            40]
+    ['double           50]))
+
 ; any -> boolean
 (define (border-style? val)
   (and (memq val border-styles) #t))
@@ -268,6 +288,43 @@
   (proc)
   #:transparent)
 
+; Conditional formatting -------------------------
+
+; (struct condition-type formula compiled-style natural)
+(define-struct conditional-format (type formula style priority) #:transparent)
+
+; (_ id) -> symbol
+(define-syntax (condition-type stx)
+  (syntax-case stx ()
+    [(_ val)
+     (identifier? #'val)
+     (match (syntax->datum #'val)
+       ['above-average       #''aboveAverage]
+       ['begins-with         #''beginsWith]
+       ['cell-is             #''cellIs]
+       ['color-scale         #''colorScale]
+       ['contains-blanks     #''containsBlanks]
+       ['contains-errors     #''containsErrors]
+       ['contains-text       #''containsText]
+       ['data-bar            #''dataBar]
+       ['duplicate-values    #''duplicateValues]
+       ['ends-with           #''endsWith]
+       ['expression          #''expression]
+       ['icon-set            #''iconSet]
+       ['not-contains-blanks #''notContainsBlanks]
+       ['not-contains-errors #''notContainsErrors]
+       ['not-contains-text   #''notContainsText]
+       ['time-period         #''timePeriod]
+       ['top10               #''top10]
+       ['unique-values       #''uniqueValues]
+       [_                  (raise-syntax-error #f "invalid conditional format type" stx #'val)])]))
+
+; any -> boolean
+(define (condition-type? type)
+  (and (memq type '(aboveAverage beginsWith cellIs colorScale containsBlanks containsErrors containsText dataBar
+                                 duplicateValues endsWith expression iconSet notContainsBlanks notContainsErrors notContainsText
+                                 timePeriod top10 uniqueValues)) #t))
+
 ; Provide statements -----------------------------
 
 (define full-circle-degrees/c
@@ -286,7 +343,8 @@
          horizontal-alignment
          vertical-alignment
          reading-order
-         border-style)
+         border-style
+         condition-type)
 
 (provide/contract
  [struct color                       ()]
@@ -339,6 +397,7 @@
                                       [color color?])]
  [border-styles                      (listof symbol?)]
  [border-style?                      (-> any/c boolean?)]
+ [border-style-priority              (-> border-style? natural-number/c)]
  [struct alignment                   ([horizontal            (or/c horizontal-alignment? #f)]
                                       [vertical              (or/c vertical-alignment? #f)]
                                       [wrap-raw              (or/c boolean? void?)]
@@ -363,4 +422,9 @@
                                       [alignment             alignment?]
                                       [hidden-raw            (or/c boolean? void?)]
                                       [locked-raw            (or/c boolean? void?)])]
- [struct (uncompiled-style style)    ([proc                  (-> natural-number/c natural-number/c compiled-style?)])])
+ [struct (uncompiled-style style)    ([proc                  (-> natural-number/c natural-number/c compiled-style?)])]
+ [struct conditional-format          ([type                  condition-type?]
+                                      [formula               any/c] ; formula?
+                                      [style                 compiled-style?]
+                                      [priority              natural-number/c])]
+ [condition-type?                    (-> any/c boolean?)])

@@ -145,6 +145,52 @@
                                                                #:bottom (and (= y h) line)
                                                                #:left   (and (= x 0) line))))))))
 
+; range [natural] [color] [color] -> range
+(define (stripe-rows range [stripe-size 1] [color1 (rgb 1 1 1)] [color2 (rgb .8 .8 1)])
+  (let ([twice-stripe-size (* 2 stripe-size)])
+    (style-range range
+                 (make-uncompiled-style
+                  (lambda (x y)
+                    (make-compiled-style #:fill (make-solid-fill (if (< (remainder y twice-stripe-size)
+                                                                        stripe-size)
+                                                                     color1
+                                                                     color2))))))))
+
+; range [natural] [color] [color] -> range
+(define (stripe-cols range [stripe-size 1] [color1 (rgb 1 1 1)] [color2 (rgb .9 .9 1)])
+  (let ([twice-stripe-size (* 2 stripe-size)])
+    (style-range range
+                 (make-uncompiled-style
+                  (lambda (x y)
+                    (make-compiled-style #:fill (make-solid-fill (if (< (remainder x twice-stripe-size)
+                                                                        stripe-size)
+                                                                     color1
+                                                                     color2))))))))
+
+; range [(U range #f)] [(U range #f)] [border-style] [border-style] [color] [color] -> range
+(define (tabulate data
+                  [col-headers        #f]
+                  [row-headers        #f]
+                  [outer-border-style (border-style medium)]
+                  [inner-border-style (border-style thin)]
+                  [color1             (rgb 1 1 1)]
+                  [color2             (rgb .9 .9 1)])
+  ; range
+  (define col-data
+    (stripe-rows (if row-headers
+                     (ht-append (outline-range row-headers inner-border-style)
+                                (outline-range data inner-border-style))
+                     (outline-range data inner-border-style))
+                 (min (add1 (quotient (range-height data) 10)) 5)
+                 color1
+                 color2))
+  ; range
+  (outline-range (if col-headers
+                     (vr-append (outline-range col-headers inner-border-style)
+                                col-data)
+                     col-data)
+                 outer-border-style))
+
 ; Helpers ----------------------------------------
 
 ;  (listof range)
@@ -195,4 +241,7 @@
  [t-pad         (->* (range+quotable?) (natural-number/c #:style style?) range?)]
  [b-pad         (->* (range+quotable?) (natural-number/c #:style style?) range?)]
  [style-range   (-> range? style? range?)]
- [outline-range (->* (range?) (border-style? color?) range?)])
+ [outline-range (->* (range?) (border-style? color?) range?)]
+ [stripe-rows   (->* (range?) (natural-number/c color? color?) range?)]
+ [stripe-cols   (->* (range?) (natural-number/c color? color?) range?)]
+ [tabulate      (->* (range?) (range? range? border-style? border-style? color? color?) range?)])

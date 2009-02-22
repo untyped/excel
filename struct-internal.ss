@@ -35,13 +35,13 @@
    sort-lock?)
   #:transparent #:mutable)
 
-; (struct style)
-(define-struct (range data) (style) #:transparent #:mutable)
+; (struct style (listof conditional-format))
+(define-struct (range data) (style conditional-formats) #:transparent #:mutable)
 
-; (struct style any)
+; (struct style (listof conditional-format) any)
 (define-struct (cell range) (value) #:transparent #:mutable)
 
-; (struct style (listof part) natural natural)
+; (struct style (listof conditional-format) (listof part) natural natural)
 (define-struct (union range) (parts width height) #:transparent)
 
 ; (struct range natural natural)
@@ -73,10 +73,13 @@
                                    [unlocked-cell-selection-lock? boolean?]
                                    [sheet-lock?                   boolean?]
                                    [sort-lock?                    boolean?])]
- [struct (range data)             ([style                         style?])]
+ [struct (range data)             ([style                         style?]
+                                   [conditional-formats           (listof conditional-format?)])]
  [struct (cell range)             ([style                         style?]
+                                   [conditional-formats           (listof conditional-format?)]
                                    [value                         any/c])]
  [struct (union range)            ([style                         style?]
+                                   [conditional-formats           (listof conditional-format?)]
                                    [parts                         (listof part?)]
                                    [width                         natural-number/c]
                                    [height                        natural-number/c])]

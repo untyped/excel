@@ -7,9 +7,17 @@
 
 ; natural natural [style] -> range
 (define (make-matrix width height [style empty-style])
-  (make-union (for*/list ([x (in-range 0 width)] [y (in-range 0 width)])
+  (make-union (for*/list ([x (in-range 0 width)]
+                          [y (in-range 0 height)])
                          (make-part (make-cell (format "~a,~a" x y)) x y))
               width height style))
+
+; style
+(define heading-style
+  (make-compiled-style #:font (make-font #:name  "Trebuchet MS" 
+                                         #:size  24
+                                         #:color (rgb 1 .5 0)
+                                         #:bold? #t)))
 
 ; Number formats ---------------------------------
 
@@ -20,7 +28,7 @@
 (define fill-sheet
   (make-worksheet
    "Fill"
-   (vl-append (make-cell "FILL TESTS")
+   (vl-append (make-cell "FILL TESTS" heading-style)
               (apply ht-append
                      (make-cell "SOLID")
                      (let ([step 0.1])
@@ -42,7 +50,7 @@
 (define border-sheet
   (make-worksheet
    "Border"
-   (vl-append (make-cell "BORDER TESTS")
+   (vl-append (make-cell "BORDER TESTS" heading-style)
               (t-pad (apply ht-append
                             (make-cell "STYLES")
                             (for/list ([style (in-list border-styles)])
@@ -86,12 +94,21 @@
                                                                  (border-style thick)
                                                                  (rgb 1 0 0)))))))))
 
+(define compound-sheet
+  (make-worksheet
+   "Compound"
+   (vl-append (make-cell "COMPOUND TESTS" heading-style)
+              (l-pad (t-pad (vl-append "Tabulate"
+                                       (t-pad (tabulate (make-matrix 10 20)
+                                                        (make-matrix 10 1)
+                                                        (make-matrix 1 20)))))))))
+
 ; Alignment --------------------------------------
 
 (define alignment-sheet
   (make-worksheet
    "Alignment"
-   (vl-append (make-cell "ALIGNMENT TESTS")
+   (vl-append (make-cell "ALIGNMENT TESTS" heading-style)
               (ht-append (make-cell "HORIZONTAL")
                          (make-cell "General"           (make-compiled-style #:alignment (make-alignment #:horizontal (horizontal-alignment general))))
                          (make-cell "Left"              (make-compiled-style #:alignment (make-alignment #:horizontal (horizontal-alignment left))))
@@ -130,6 +147,6 @@
 (write-workbook (make-workbook (list fill-sheet 
                                      border-sheet
                                      alignment-sheet
-                                     #;(make-worksheet "Sheet1" (make-cell 123))))
+                                     compound-sheet))
                 (build-path (current-directory) "swatch.xlsx")
                 #:exists 'replace)

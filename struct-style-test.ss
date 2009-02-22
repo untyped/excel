@@ -176,8 +176,8 @@
     
     (test-case "compose-borders"
       (let ([check-compose (cut check-compose compose-borders empty-border <> <>)]
-            [line1         (make-line (border-style thin))]
-            [line2         (make-line (border-style thick))])
+            [line1         (make-line (border-style thin) (rgb 1 0 0))]
+            [line2         (make-line (border-style thin) (rgb 0 0 1))])
         (check-compose (make-border #:top            line1) (make-border #:top            line2))
         (check-compose (make-border #:right          line1) (make-border #:right          line2))
         (check-compose (make-border #:bottom         line1) (make-border #:bottom         line2))
@@ -186,7 +186,14 @@
         (check-compose (make-border #:vertical       line1) (make-border #:vertical       line2))
         (check-compose (make-border #:outline?       #t)    (make-border #:outline?       #f))
         (check-compose (make-border #:diagonal-down? #t)    (make-border #:diagonal-down? #f))
-        (check-compose (make-border #:diagonal-up?   #t)    (make-border #:diagonal-up?   #f))))
+        (check-compose (make-border #:diagonal-up?   #t)    (make-border #:diagonal-up?   #f))
+        ; Special rules for border thickness:
+        (check-equal? (compose-borders (make-border #:top (make-line (border-style thin)))
+                                       (make-border #:top (make-line (border-style thick))))
+                      (make-border #:top (make-line (border-style thick))))
+        (check-equal? (compose-borders (make-border #:top (make-line (border-style thick)))
+                                       (make-border #:top (make-line (border-style thin))))
+                      (make-border #:top (make-line (border-style thick))))))
     
     (test-case "border-style and border-style?"
       (check-true (border-style? (border-style none)))
