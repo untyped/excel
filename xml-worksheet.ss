@@ -90,14 +90,23 @@
                            (xy->ref (sub1 (+ x0 (range-width range)))
                                     (sub1 (+ y0 (range-height range)))))])
         ,@(for/list ([cf (in-list (range-conditional-formats range))])
-            (xml (cfRule (@ [type     "cellIs"#;,(conditional-format-type cf)]
-                            [dxfId    ,(cache-diff-style-ref cache (conditional-format-style cf))]
-                            [priority ,(conditional-format-priority cf)]
-                            [operator "equal"#;,(conditional-format-operator cf)])
-                         (formula ,(expression->string
-                                    cache
-                                    sheet
-                                    (formula-expr (conditional-format-formula cf))))))))))
+            (match cf
+              [(struct cell-is-conditional-format (style priority operator args))
+               (xml (cfRule (@ [type     "cellIs"]
+                               [dxfId    ,(cache-diff-style-ref cache style)]
+                               [priority ,priority]
+                               [operator ,operator])
+                            ,@(for/list ([arg (in-list args)])
+                                (xml (formula ,(if (formula? arg)
+                                                   (expression->string cache sheet (formula-expr arg))
+                                                   (expression->string cache sheet (quote-expression arg))))))))]
+              [(struct expression-conditional-format (style priority formula))
+               (xml (cfRule (@ [type     "expression"]
+                               [dxfId    ,(cache-diff-style-ref cache style)]
+                               [priority ,priority])
+                            (formula ,(if (formula? formula)
+                                          (expression->string cache sheet (formula-expr formula))
+                                          (expression->string cache sheet (quote-expression formula))))))])))))
 
 ; Provide statements -----------------------------
 

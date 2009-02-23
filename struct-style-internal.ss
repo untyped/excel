@@ -291,7 +291,19 @@
 ; Conditional formatting -------------------------
 
 ; (struct condition-type formula compiled-style natural)
-(define-struct conditional-format (type formula style priority) #:transparent)
+(define-struct conditional-format
+  (style priority)
+  #:transparent)
+
+; (struct condition-type formula compiled-style natural cell-is-operator (listof quotable))
+(define-struct (cell-is-conditional-format conditional-format)
+  (op args)
+  #:transparent)
+
+; (struct condition-type formula compiled-style natural formula)
+(define-struct (expression-conditional-format conditional-format)
+  (formula)
+  #:transparent)
 
 ; (_ id) -> symbol
 (define-syntax (condition-type stx)
@@ -320,10 +332,15 @@
        [_                  (raise-syntax-error #f "invalid conditional format type" stx #'val)])]))
 
 ; any -> boolean
-(define (condition-type? type)
-  (and (memq type '(aboveAverage beginsWith cellIs colorScale containsBlanks containsErrors containsText dataBar
-                                 duplicateValues endsWith expression iconSet notContainsBlanks notContainsErrors notContainsText
-                                 timePeriod top10 uniqueValues)) #t))
+(define (condition-type? val)
+  (and (memq val '(aboveAverage beginsWith cellIs colorScale containsBlanks containsErrors containsText dataBar
+                                duplicateValues endsWith expression iconSet notContainsBlanks notContainsErrors notContainsText
+                                timePeriod top10 uniqueValues)) #t))
+
+; any -> boolean
+(define (cell-is-operator? val)
+  (and (memq val '(beginsWith between containsText endsWith equal greaterThan greaterThanOrEqual lessThan lessThanOrEqual
+                              notBetween notContains notEqual)) #t))
 
 ; Provide statements -----------------------------
 
@@ -422,9 +439,15 @@
                                       [alignment             alignment?]
                                       [hidden-raw            (or/c boolean? void?)]
                                       [locked-raw            (or/c boolean? void?)])]
- [struct (uncompiled-style style)    ([proc                  (-> natural-number/c natural-number/c compiled-style?)])]
- [struct conditional-format          ([type                  condition-type?]
-                                      [formula               any/c] ; formula?
-                                      [style                 compiled-style?]
-                                      [priority              natural-number/c])]
- [condition-type?                    (-> any/c boolean?)])
+ [struct (uncompiled-style style)    ([proc                  (-> natural-number/c natural-number/c compiled-style?)])])
+
+(provide/contract
+ [struct conditional-format                                 ([style    compiled-style?]
+                                                             [priority natural-number/c])]
+ [struct (cell-is-conditional-format conditional-format)    ([style    compiled-style?]
+                                                             [priority natural-number/c]
+                                                             [op       cell-is-operator?]
+                                                             [args     list?])]
+ [struct (expression-conditional-format conditional-format) ([style    compiled-style?]
+                                                             [priority natural-number/c]
+                                                             [formula  any/c])])

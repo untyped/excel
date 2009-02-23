@@ -6,6 +6,10 @@
 
 ; Wrappers ---------------------------------------
 
+; (U expression quotable) [boolean] -> formula
+(define (create-formula expr [array? #f])
+  (make-formula (quote-expression expr) array?))
+
 ; symbol (U expression quotable) ... -> operator
 (define (create-operator name . args)
   (make-operator name (map quote-expression args)))
@@ -46,6 +50,7 @@
 ; Provide statements -----------------------------
 
 (provide (except-out (all-from-out "struct-internal.ss")
+                     make-formula
                      make-operator
                      make-function
                      make-array
@@ -53,6 +58,7 @@
                      make-literal))
 
 (provide/contract
+ [rename create-formula        make-formula        (->* (quotable?) (boolean?) formula?)]
  [rename create-operator       make-operator       (->* (symbol?) () #:rest (listof quotable?) operator?)]
  [rename create-function       make-function       (->* (symbol?) () #:rest (listof quotable?) function?)]
  [rename create-array          make-array          (->* () () #:rest (listof quotable?) array?)]

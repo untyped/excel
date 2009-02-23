@@ -358,6 +358,27 @@
 ; compiled-style
 (define empty-style (create-compiled-style))
 
+; Conditional formatting -------------------------
+
+; any compiled-style [natural] -> cell-is-conditional-format
+(define (cf=             val       style [priority 1]) (make-cell-is-conditional-format style priority 'equal              (list val)))
+(define (cf<>            val       style [priority 1]) (make-cell-is-conditional-format style priority 'notEqual           (list val)))
+(define (cf>             val       style [priority 1]) (make-cell-is-conditional-format style priority 'greaterThan        (list val)))
+(define (cf<             val       style [priority 1]) (make-cell-is-conditional-format style priority 'lessThan           (list val)))
+(define (cf>=            val       style [priority 1]) (make-cell-is-conditional-format style priority 'greaterThanOrEqual (list val)))
+(define (cf<=            val       style [priority 1]) (make-cell-is-conditional-format style priority 'lessThanOrEqual    (list val)))
+(define (cf-begins-with  val       style [priority 1]) (make-cell-is-conditional-format style priority 'beginsWith         (list val)))
+(define (cf-ends-with    val       style [priority 1]) (make-cell-is-conditional-format style priority 'endsWith           (list val)))
+(define (cf-contains     val       style [priority 1]) (make-cell-is-conditional-format style priority 'contains           (list val)))
+(define (cf-not-contains val       style [priority 1]) (make-cell-is-conditional-format style priority 'notContains        (list val)))
+
+; any any compiled-style [natural] -> cell-is-conditional-format
+(define (cf-between      val1 val2 style [priority 1]) (make-cell-is-conditional-format style priority 'between            (list val1 val2)))
+(define (cf-not-between  val1 val2 style [priority 1]) (make-cell-is-conditional-format style priority 'notBetween         (list val1 val2)))
+
+; formula compiled-style [natural] -> expression-conditional-format
+(define (cf-expression   fx        style [priority 1]) (make-expression-conditional-format style priority fx))
+
 ; Helpers ----------------------------------------
 
 ; (any -> any) any any -> any
@@ -479,3 +500,18 @@
  #;[empty-style?                                     (-> style? boolean?)]
  [compose-styles                                   (-> style? (or/c style? #f) style?)]
  [empty-style                                      compiled-style?])
+
+(provide/contract
+ [cf=             (->* (any/c compiled-style?) (natural-number/c) cell-is-conditional-format?)]
+ [cf<>            (->* (any/c compiled-style?) (natural-number/c) cell-is-conditional-format?)]
+ [cf>             (->* (any/c compiled-style?) (natural-number/c) cell-is-conditional-format?)]
+ [cf<             (->* (any/c compiled-style?) (natural-number/c) cell-is-conditional-format?)]
+ [cf>=            (->* (any/c compiled-style?) (natural-number/c) cell-is-conditional-format?)]
+ [cf<=            (->* (any/c compiled-style?) (natural-number/c) cell-is-conditional-format?)]
+ [cf-begins-with  (->* (any/c compiled-style?) (natural-number/c) cell-is-conditional-format?)]
+ [cf-ends-with    (->* (any/c compiled-style?) (natural-number/c) cell-is-conditional-format?)]
+ [cf-contains     (->* (any/c compiled-style?) (natural-number/c) cell-is-conditional-format?)]
+ [cf-not-contains (->* (any/c compiled-style?) (natural-number/c) cell-is-conditional-format?)]
+ [cf-between      (->* (any/c any/c compiled-style?) (natural-number/c) cell-is-conditional-format?)]
+ [cf-not-between  (->* (any/c any/c compiled-style?) (natural-number/c) cell-is-conditional-format?)]
+ [cf-expression   (->* (any/c compiled-style?) (natural-number/c) expression-conditional-format?)])

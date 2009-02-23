@@ -148,22 +148,18 @@
   (make-worksheet
    "Conditional formatting"
    (vl-append (make-cell "CONDITIONAL FORMATTING" heading-style)
-              (t-pad (ht-append "Constants"
-                                (let ([cfs (list (make-conditional-format (condition-type cell-is)
-                                                                          (fx (* 1 1))
-                                                                          (make-compiled-style #:fill (make-solid-fill (rgb 1 .5 .5)))
-                                                                          1)
-                                                 (make-conditional-format (condition-type cell-is)
-                                                                          (fx (* 2 1))
-                                                                          (make-compiled-style #:font (make-font #:bold? #t))
-                                                                          2)
-                                                 (make-conditional-format (condition-type cell-is)
-                                                                          (fx (* 3 1))
-                                                                          (make-compiled-style #:border (make-border #:left (make-line) #:right (make-line)))
-                                                                          3))])
-                                  (l-pad (vl-append (make-cell 1 empty-style cfs)
-                                                    (make-cell 2 empty-style cfs)
-                                                    (make-cell 3 empty-style cfs)))))))))
+              (t-pad (vl-append (ht-append "Cell is"
+                                           (let ([cfs (list (cf< 0 (make-compiled-style #:fill (make-solid-fill (rgb 1 0 0))))
+                                                            (cf= 0 (make-compiled-style #:fill (make-solid-fill (rgb 1 1 0))))
+                                                            (cf> 0 (make-compiled-style #:fill (make-solid-fill (rgb 0 1 0)))))])
+                                             (l-pad (vl-append (make-cell -1 empty-style cfs)
+                                                               (make-cell  0 empty-style cfs)
+                                                               (make-cell +1 empty-style cfs)))))
+                                (ht-append "Expression"
+                                           (let* ([src (make-cell 100)]
+                                                  [cfs (list (cf-expression (fx (= src 100)) (make-compiled-style #:fill (make-solid-fill (rgb 0 1 0)))))]
+                                                  [des (make-cell "src=100?" empty-style cfs)])
+                                             (l-pad (vc-append src des)))))))))
 
 ; Workbook ---------------------------------------
 
