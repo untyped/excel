@@ -148,18 +148,32 @@
   (make-worksheet
    "Conditional formatting"
    (vl-append (make-cell "CONDITIONAL FORMATTING" heading-style)
-              (t-pad (vl-append (ht-append "Cell is"
+              (t-pad (vl-append (ht-append "Cell-is-style formatting"
                                            (let ([cfs (list (cf< 0 (make-compiled-style #:fill (make-solid-fill (rgb 1 0 0))))
                                                             (cf= 0 (make-compiled-style #:fill (make-solid-fill (rgb 1 1 0))))
                                                             (cf> 0 (make-compiled-style #:fill (make-solid-fill (rgb 0 1 0)))))])
-                                             (l-pad (vl-append (make-cell -1 empty-style cfs)
-                                                               (make-cell  0 empty-style cfs)
-                                                               (make-cell +1 empty-style cfs)))))
-                                (ht-append "Expression"
+                                             (l-pad (vl-append (make-cell -1 empty-style #:cf cfs)
+                                                               (make-cell  0 empty-style #:cf cfs)
+                                                               (make-cell +1 empty-style #:cf cfs)))))
+                                #f
+                                (ht-append "Expression-style formatting"
                                            (let* ([src (make-cell 100)]
-                                                  [cfs (list (cf-expression (fx (= src 100)) (make-compiled-style #:fill (make-solid-fill (rgb 0 1 0)))))]
-                                                  [des (make-cell "src=100?" empty-style cfs)])
-                                             (l-pad (vc-append src des)))))))))
+                                                  [cfs (list (cf (fx (= src 100)) (make-compiled-style #:fill (make-solid-fill (rgb 0 1 0)))))]
+                                                  [des (make-cell "src=100?" empty-style #:cf cfs)])
+                                             (l-pad (vc-append src des))))
+                                #f
+                                (ht-append "Validation"
+                                           (let ([custom-validate
+                                                  (lambda (style)
+                                                    (validate (fx (= (!this) 100)) 
+                                                              #:error-style    style
+                                                              #:error-title    "Must be 100"
+                                                              #:error-message  "The value must be 100"
+                                                              #:prompt-title   "Must be 100"
+                                                              #:prompt-message "The value must be 100"))])
+                                             (l-pad (vl-append (hc-append "Error"   (make-cell 100 empty-style #:validate (custom-validate 'stop)))
+                                                               (hc-append "Warning" (make-cell 100 empty-style #:validate (custom-validate 'warning)))
+                                                               (hc-append "Info"    (make-cell 100 empty-style #:validate (custom-validate 'information))))))))))))
 
 ; Workbook ---------------------------------------
 

@@ -288,60 +288,6 @@
   (proc)
   #:transparent)
 
-; Conditional formatting -------------------------
-
-; (struct condition-type formula compiled-style natural)
-(define-struct conditional-format
-  (style priority)
-  #:transparent)
-
-; (struct condition-type formula compiled-style natural cell-is-operator (listof quotable))
-(define-struct (cell-is-conditional-format conditional-format)
-  (op args)
-  #:transparent)
-
-; (struct condition-type formula compiled-style natural formula)
-(define-struct (expression-conditional-format conditional-format)
-  (formula)
-  #:transparent)
-
-; (_ id) -> symbol
-(define-syntax (condition-type stx)
-  (syntax-case stx ()
-    [(_ val)
-     (identifier? #'val)
-     (match (syntax->datum #'val)
-       ['above-average       #''aboveAverage]
-       ['begins-with         #''beginsWith]
-       ['cell-is             #''cellIs]
-       ['color-scale         #''colorScale]
-       ['contains-blanks     #''containsBlanks]
-       ['contains-errors     #''containsErrors]
-       ['contains-text       #''containsText]
-       ['data-bar            #''dataBar]
-       ['duplicate-values    #''duplicateValues]
-       ['ends-with           #''endsWith]
-       ['expression          #''expression]
-       ['icon-set            #''iconSet]
-       ['not-contains-blanks #''notContainsBlanks]
-       ['not-contains-errors #''notContainsErrors]
-       ['not-contains-text   #''notContainsText]
-       ['time-period         #''timePeriod]
-       ['top10               #''top10]
-       ['unique-values       #''uniqueValues]
-       [_                  (raise-syntax-error #f "invalid conditional format type" stx #'val)])]))
-
-; any -> boolean
-(define (condition-type? val)
-  (and (memq val '(aboveAverage beginsWith cellIs colorScale containsBlanks containsErrors containsText dataBar
-                                duplicateValues endsWith expression iconSet notContainsBlanks notContainsErrors notContainsText
-                                timePeriod top10 uniqueValues)) #t))
-
-; any -> boolean
-(define (cell-is-operator? val)
-  (and (memq val '(beginsWith between containsText endsWith equal greaterThan greaterThanOrEqual lessThan lessThanOrEqual
-                              notBetween notContains notEqual)) #t))
-
 ; Provide statements -----------------------------
 
 (define full-circle-degrees/c
@@ -360,8 +306,7 @@
          horizontal-alignment
          vertical-alignment
          reading-order
-         border-style
-         condition-type)
+         border-style)
 
 (provide/contract
  [struct color                       ()]
@@ -440,14 +385,3 @@
                                       [hidden-raw            (or/c boolean? void?)]
                                       [locked-raw            (or/c boolean? void?)])]
  [struct (uncompiled-style style)    ([proc                  (-> natural-number/c natural-number/c compiled-style?)])])
-
-(provide/contract
- [struct conditional-format                                 ([style    compiled-style?]
-                                                             [priority natural-number/c])]
- [struct (cell-is-conditional-format conditional-format)    ([style    compiled-style?]
-                                                             [priority natural-number/c]
-                                                             [op       cell-is-operator?]
-                                                             [args     list?])]
- [struct (expression-conditional-format conditional-format) ([style    compiled-style?]
-                                                             [priority natural-number/c]
-                                                             [formula  any/c])])

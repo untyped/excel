@@ -1,15 +1,15 @@
 #lang scheme/base
 
-(require "file.ss"
+(require "cf.ss"
+         "file.ss"
          "range.ss"
          "struct.ss"
-         "formula/struct.ss"
-         "formula/syntax.ss")
+         "formula-syntax.ss")
 
 ; Provide statements -----------------------------
 
-(provide (all-from-out "file.ss"
+(provide (all-from-out "cf.ss"
+                       "file.ss"
                        "range.ss"
                        "struct.ss"
-                       "formula/struct.ss"
-                       "formula/syntax.ss"))
+                       "formula-syntax.ss"))

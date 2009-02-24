@@ -8,8 +8,7 @@
          "struct.ss"
          "xml-internal.ss"
          "xml-style.ss"
-         "xml-worksheet.ss"
-         "formula/formula.ss")
+         "xml-worksheet.ss")
 
 ; Content ----------------------------------------
 

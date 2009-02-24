@@ -2,16 +2,19 @@
 
 (require "base.ss")
 
-(require "struct-style-internal.ss")
+(require (for-syntax scheme/base
+                     scheme/match)
+         (unlib-in string)
+         "struct-style-internal.ss")
 
 ; (struct)
-(define-struct data () #:transparent #:mutable)
+(define-struct data () #:transparent)
 
 ; (struct symbol)
-(define-struct (package-part data) (id) #:transparent #:mutable)
+(define-struct (package-part data) (id) #:transparent)
 
 ; (struct symbol (listof worksheet))
-(define-struct (workbook package-part) (sheets) #:transparent #:mutable)
+(define-struct (workbook package-part) (sheets) #:transparent)
 
 ; (struct symbol (U string #f) range)
 (define-struct (worksheet package-part)
@@ -33,56 +36,185 @@
    unlocked-cell-selection-lock?
    sheet-lock?
    sort-lock?)
-  #:transparent #:mutable)
+  #:transparent)
 
-; (struct style (listof conditional-format))
-(define-struct (range data) (style conditional-formats) #:transparent #:mutable)
+; (struct style (U validation-rule #f) (listof conditional-format))
+(define-struct (range data) (style validation-rule conditional-formats) #:transparent)
 
-; (struct style (listof conditional-format) any)
-(define-struct (cell range) (value) #:transparent #:mutable)
+; (struct style (U validation-rule #f) (listof conditional-format) any)
+(define-struct (cell range) (value) #:transparent)
 
-; (struct style (listof conditional-format) (listof part) natural natural)
+; (struct style (U validation-rule #f) (listof conditional-format) (listof part) natural natural)
 (define-struct (union range) (parts width height) #:transparent)
 
 ; (struct range natural natural)
 (define-struct (part data) (range dx dy) #:transparent)
 
+; Core wrappers ----------------------------------
+
+; range -> natural
+(define (range-width range)
+  (if (union? range)
+      (union-width range)
+      1))
+
+; range -> natural
+(define (range-height range)
+  (if (union? range)
+      (union-height range)
+      1))
+
+; range -> (listof range)
+(define (range-children range)
+  (if (cell? range)
+      null
+      (for/list ([part (in-list (union-parts range))])
+        (part-range part))))
+
+; part integer integer -> boolean
+;
+; Coordinates are in the coordinate system of part's parent range.
+(define (part-contains? part x y)
+  (let* ([x0 (part-dx part)]
+         [y0 (part-dy part)]
+         [x1 (+ x0 (range-width (part-range part)))]
+         [y1 (+ y0 (range-height (part-range part)))])
+    (and (>= x x0)
+         (>= y y0)
+         (< x x1)
+         (< y y1))))
+
+; Formulae and expressions -----------------------
+
+; (struct expression boolean)
+(define-struct formula (expr array?) #:transparent)
+
+; (struct)
+(define-struct expression () #:transparent)
+
+; (struct symbol (listof expression))
+(define-struct (operator expression) (name args) #:transparent)
+
+; (struct symbol (listof expression))
+(define-struct (function expression) (name args) #:transparent)
+
+; (struct (listof expression))
+(define-struct (array expression) (data) #:transparent)
+
+; (struct any)
+(define-struct (literal expression) (value) #:transparent)
+
+; (struct cell boolean boolean)
+(define-struct (cell-reference expression) (cell abs-x? abs-y?) #:transparent)
+
+; (struct)
+(define-struct (this-reference expression) () #:transparent)
+
+; Quoting ----------------------------------------
+
+; any -> boolean
+(define (literal-value? item)
+  (or (boolean? item)
+      (integer? item)
+      (real? item)
+      (string? item)
+      (symbol? item)))
+
+; any -> boolean
+(define (quotable? item)
+  (or (formula? item)
+      (expression? item)
+      (cell? item)
+      (literal-value? item)))
+
+; (U formula expression cell literal-value) -> expression
+(define (quote-expression arg)
+  (cond [(formula? arg)       (formula-expr arg)]
+        [(expression? arg)    arg]
+        [(cell? arg)          (make-cell-reference arg #f #f)]
+        [(literal-value? arg) (make-literal arg)]))
+
+; (U formula expression cell literal-value) -> expression
+(define (quote-formula arg)
+  (cond [(formula? arg)       arg]
+        [(expression? arg)    (make-formula arg #f)]
+        [(cell? arg)          (make-cell-reference arg #f #f)]
+        [(literal-value? arg) (make-literal arg)]))
+
+; Conditional formatting -------------------------
+
+; (struct formula compiled-style natural)
+(define-struct conditional-format (formula style priority) #:transparent)
+
+; Validation -------------------------------------
+
+; (struct formula (U 'error 'warning 'info) (U string #f) (U string #f) (U string #f) (U string #f))
+(define-struct validation-rule (formula error-style error-title error-message prompt-title prompt-message) #:transparent)
+
 ; Provide statements -----------------------------
 
 (provide/contract
- [struct data                     ()]
- [struct package-part             ([id                            symbol?])]
- [struct (workbook package-part)  ([id                            symbol?]
-                                   [sheets                        (listof worksheet?)])]
- [struct (worksheet package-part) ([id                            symbol?]
-                                   [name                          string?]
-                                   [data                          range?]
-                                   [auto-filter-lock?             boolean?]
-                                   [delete-columns-lock?          boolean?]
-                                   [delete-rows-lock?             boolean?]
-                                   [format-cells-lock?            boolean?]
-                                   [format-columns-lock?          boolean?]
-                                   [format-rows-lock?             boolean?]
-                                   [insert-columns-lock?          boolean?]
-                                   [insert-hyperlinks-lock?       boolean?]
-                                   [insert-rows-lock?             boolean?]
-                                   [objects-lock?                 boolean?]
-                                   [pivot-tables-lock?            boolean?]
-                                   [scenarios-lock?               boolean?]
-                                   [locked-cell-selection-lock?   boolean?]
-                                   [unlocked-cell-selection-lock? boolean?]
-                                   [sheet-lock?                   boolean?]
-                                   [sort-lock?                    boolean?])]
- [struct (range data)             ([style                         style?]
-                                   [conditional-formats           (listof conditional-format?)])]
- [struct (cell range)             ([style                         style?]
-                                   [conditional-formats           (listof conditional-format?)]
-                                   [value                         any/c])]
- [struct (union range)            ([style                         style?]
-                                   [conditional-formats           (listof conditional-format?)]
-                                   [parts                         (listof part?)]
-                                   [width                         natural-number/c]
-                                   [height                        natural-number/c])]
- [struct (part data)              ([range                         range?]
-                                   [dx                            natural-number/c]
-                                   [dy                            natural-number/c])])
+ [struct data                        ()]
+ [struct package-part                ([id                            symbol?])]
+ [struct (workbook package-part)     ([id                            symbol?]
+                                      [sheets                        (listof worksheet?)])]
+ [struct (worksheet package-part)    ([id                            symbol?]
+                                      [name                          (string-length/c 31)]
+                                      [data                          range?]
+                                      [auto-filter-lock?             boolean?]
+                                      [delete-columns-lock?          boolean?]
+                                      [delete-rows-lock?             boolean?]
+                                      [format-cells-lock?            boolean?]
+                                      [format-columns-lock?          boolean?]
+                                      [format-rows-lock?             boolean?]
+                                      [insert-columns-lock?          boolean?]
+                                      [insert-hyperlinks-lock?       boolean?]
+                                      [insert-rows-lock?             boolean?]
+                                      [objects-lock?                 boolean?]
+                                      [pivot-tables-lock?            boolean?]
+                                      [scenarios-lock?               boolean?]
+                                      [locked-cell-selection-lock?   boolean?]
+                                      [unlocked-cell-selection-lock? boolean?]
+                                      [sheet-lock?                   boolean?]
+                                      [sort-lock?                    boolean?])]
+ [struct (range data)                ([style                         style?]
+                                      [validation-rule               (or/c validation-rule? #f)]
+                                      [conditional-formats           (listof conditional-format?)])]
+ [struct (cell range)                ([style                         style?]
+                                      [validation-rule               (or/c validation-rule? #f)]
+                                      [conditional-formats           (listof conditional-format?)]
+                                      [value                         quotable?])]
+ [struct (union range)               ([style                         style?]
+                                      [validation-rule               (or/c validation-rule? #f)]
+                                      [conditional-formats           (listof conditional-format?)]
+                                      [parts                         (listof part?)]
+                                      [width                         natural-number/c]
+                                      [height                        natural-number/c])]
+ [struct (part data)                 ([range                         range?]
+                                      [dx                            natural-number/c]
+                                      [dy                            natural-number/c])]
+ [range-width                        (-> range? natural-number/c)]
+ [range-height                       (-> range? natural-number/c)]
+ [range-children                     (-> range? (listof range?))]
+ [part-contains?                     (-> part? natural-number/c natural-number/c boolean?)]
+ [struct formula                     ([expr expression?] [array? boolean?])]
+ [struct expression                  ()]
+ [struct (operator expression)       ([name symbol?] [args (listof expression?)])]
+ [struct (function expression)       ([name symbol?] [args (listof expression?)])]
+ [struct (array expression)          ([data (listof expression?)])]
+ [struct (literal expression)        ([value literal-value?])]
+ [struct (cell-reference expression) ([cell cell?] [abs-x? boolean?] [abs-y? boolean?])]
+ [struct (this-reference expression) ()]
+ [literal-value?                     (-> any/c boolean?)]
+ [quotable?                          (-> any/c boolean?)]
+ [quote-expression                   (-> quotable? expression?)]
+ [quote-formula                      (-> quotable? formula?)]
+ [struct conditional-format          ([formula                       formula?]
+                                      [style                         compiled-style?]
+                                      [priority                      natural-number/c])]
+ [struct validation-rule             ([formula                       formula?]
+                                      [error-style                   (or/c 'stop 'warning 'information)]
+                                      [error-title                   (or/c string? #f)]
+                                      [error-message                 (or/c string? #f)]
+                                      [prompt-title                  (or/c string? #f)]
+                                      [prompt-message                (or/c string? #f)])])

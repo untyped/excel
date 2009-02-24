@@ -19,14 +19,14 @@
 (define spreadsheetml-namespace            "http://schemas.openxmlformats.org/spreadsheetml/2006/main")
 (define workbook-namespace                 "http://schemas.openxmlformats.org/officeDocument/2006/relationships")
 (define worksheet-namespace                "http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet")
-(define stylesheet-namespace          "http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles")
+(define stylesheet-namespace               "http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles")
 
 ; Content types ----------------------------------
 
 (define package-relationships-content-type "application/vnd.openxmlformats-package.relationships+xml")
 (define workbook-content-type              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml")
 (define worksheet-content-type             "application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml")
-(define stylesheet-content-type       "application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml")
+(define stylesheet-content-type            "application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml")
 
 ; Relationships ----------------------------------
 

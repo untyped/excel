@@ -64,47 +64,64 @@
 
 ; Range wrappers ---------------------------------
 
-; (listof part) natural natural [style] [(listof conditional-format)] -> union
-(define (create-union parts x y [style empty-style] [conditional-formats null])
-  (make-union style conditional-formats parts x y))
+; (listof part) natural natural [style] [#:validate (U validation-rule #f)] [#:cf (listof conditional-format)] -> union
+(define (create-union parts x y [style empty-style] #:validate [validation-rule #f] #:cf [conditional-formats null])
+  (make-union style validation-rule conditional-formats parts x y))
 
-; any [style] [(listof conditional-format)] -> cell
-(define (create-cell val [style empty-style] [conditional-formats null])
-  (make-cell style conditional-formats val))
+; any [style] [#:validate (U validation-rule #f)] [#:cf (listof conditional-format)] -> cell
+(define (create-cell val [style empty-style] #:validate [validation-rule #f] #:cf [conditional-formats null])
+  (make-cell style validation-rule conditional-formats val))
 
-; range -> natural
-(define (range-width range)
-  (if (union? range)
-      (union-width range)
-      1))
+; Formula and expression wrappers ----------------
 
-; range -> natural
-(define (range-height range)
-  (if (union? range)
-      (union-height range)
-      1))
+; (U expression quotable) [boolean] -> formula
+(define (create-formula expr [array? #f])
+  (make-formula (quote-expression expr) array?))
 
-; range -> (listof range)
-(define (range-children range)
-  (if (cell? range)
-      null
-      (for/list ([part (in-list (union-parts range))])
-        (part-range part))))
+; symbol (U expression quotable) ... -> operator
+(define (create-operator name . args)
+  (make-operator name (map quote-expression args)))
 
-; Part wrappers ----------------------------------
+; symbol (U expression quotable) ... -> function
+(define (create-function name . args)
+  (make-function name (map quote-expression args)))
 
-; part integer integer -> boolean
-;
-; Coordinates are in the coordinate system of part's parent range.
-(define (part-contains? part x y)
-  (let* ([x0 (part-dx part)]
-         [y0 (part-dy part)]
-         [x1 (+ x0 (range-width (part-range part)))]
-         [y1 (+ y0 (range-height (part-range part)))])
-    (and (>= x x0)
-         (>= y y0)
-         (< x x1)
-         (< y y1))))
+; (U expression quotable) ... -> array
+(define (create-array . args)
+  (make-array (map quote-expression args)))
+
+; literal-value -> literal
+(define (create-literal val)
+  (cond [(boolean? val) (make-literal val)]
+        [(integer? val) (make-literal val)]
+        [(real? val)    (make-literal val)]
+        [(string? val)  (make-literal val)]
+        [(symbol? val)  (make-literal val)]
+        [else           (raise-exn exn:fail:contract
+                          (format "Expected (U boolean integer real string symbol), received ~s" val))]))
+
+; cell [boolean] [boolean] -> cell-reference
+(define (create-cell-reference cell [abs-x? #f] [abs-y? #f])
+  (make-cell-reference cell abs-x? abs-y?))
+
+; Validation rules -------------------------------
+
+;  quotable
+;  [#:error-style    (U 'error 'warning 'info)]
+;  [#:error-title    (U string #f)]
+;  [#:error-message  (U string #f)]
+;  [#:prompt-title   (U string #f)]
+;  [#:prompt-message (U string #f)]
+; ->
+;  validation-rule
+(define (validate
+         fx
+         #:error-style    [error-style    'stop]
+         #:error-title    [error-title    #f]
+         #:error-message  [error-message  #f]
+         #:prompt-title   [prompt-title   #f]
+         #:prompt-message [prompt-message #f])
+  (make-validation-rule (quote-formula fx) error-style error-title error-message prompt-title prompt-message))
 
 ; Provide statements -----------------------------
 
@@ -112,37 +129,54 @@
                      make-workbook
                      make-worksheet
                      make-union
-                     make-cell)
+                     make-cell
+                     make-formula
+                     make-operator
+                     make-function
+                     make-array
+                     make-cell-reference
+                     make-literal)
          (all-from-out "struct-style.ss"))
 
 (provide/contract
- [rename create-workbook  make-workbook  (->* () (#:id symbol? (listof worksheet?)) workbook?)]
- [rename create-worksheet make-worksheet (->* (string? range?)
-                                              (#:id symbol?
-                                                    #:auto-filter-lock?             boolean?
-                                                    #:delete-columns-lock?          boolean?
-                                                    #:delete-rows-lock?             boolean?
-                                                    #:format-cells-lock?            boolean?
-                                                    #:format-columns-lock?          boolean?
-                                                    #:format-rows-lock?             boolean?
-                                                    #:insert-columns-lock?          boolean?
-                                                    #:insert-hyperlinks-lock?       boolean?
-                                                    #:insert-rows-lock?             boolean?
-                                                    #:objects-lock?                 boolean?
-                                                    #:pivot-tables-lock?            boolean?
-                                                    #:scenarios-lock?               boolean?
-                                                    #:locked-cell-selection-lock?   boolean?
-                                                    #:unlocked-cell-selection-lock? boolean?
-                                                    #:sheet-lock?                   boolean?
-                                                    #:sort-lock?                    boolean?)
-                                              worksheet?)]
- [rename create-union     make-union     (->* ((listof part?) natural-number/c natural-number/c)
-                                              (style? (listof conditional-format?))
-                                              union?)]
- [rename create-cell      make-cell      (->* (any/c)
-                                              (style? (listof conditional-format?))
-                                              cell?)]
- [range-children                         (-> range? (listof range?))]
- [range-width                            (-> range? natural-number/c)]
- [range-height                           (-> range? natural-number/c)]
- [part-contains?                         (-> part? natural-number/c natural-number/c boolean?)])
+ [rename create-workbook       make-workbook       (->* () (#:id symbol? (listof worksheet?)) workbook?)]
+ [rename create-worksheet      make-worksheet      (->* (string? range?)
+                                                        (#:id symbol?
+                                                              #:auto-filter-lock?             boolean?
+                                                              #:delete-columns-lock?          boolean?
+                                                              #:delete-rows-lock?             boolean?
+                                                              #:format-cells-lock?            boolean?
+                                                              #:format-columns-lock?          boolean?
+                                                              #:format-rows-lock?             boolean?
+                                                              #:insert-columns-lock?          boolean?
+                                                              #:insert-hyperlinks-lock?       boolean?
+                                                              #:insert-rows-lock?             boolean?
+                                                              #:objects-lock?                 boolean?
+                                                              #:pivot-tables-lock?            boolean?
+                                                              #:scenarios-lock?               boolean?
+                                                              #:locked-cell-selection-lock?   boolean?
+                                                              #:unlocked-cell-selection-lock? boolean?
+                                                              #:sheet-lock?                   boolean?
+                                                              #:sort-lock?                    boolean?)
+                                                        worksheet?)]
+ [rename create-union          make-union          (->* ((listof part?) natural-number/c natural-number/c)
+                                                        (style? #:validate (or/c validation-rule? #f) #:cf (listof conditional-format?))
+                                                        union?)]
+ [rename create-cell           make-cell           (->* (quotable?)
+                                                        (style? #:validate (or/c validation-rule? #f) #:cf (listof conditional-format?))
+                                                        cell?)]
+ [rename create-formula        make-formula        (->* (quotable?) (boolean?) formula?)]
+ [rename create-operator       make-operator       (->* (symbol?) () #:rest (listof quotable?) operator?)]
+ [rename create-function       make-function       (->* (symbol?) () #:rest (listof quotable?) function?)]
+ [rename create-array          make-array          (->* () () #:rest (listof quotable?) array?)]
+ [rename create-literal        make-literal        (-> literal-value? literal?)]
+ [rename create-cell-reference make-cell-reference (->* (cell?) (boolean? boolean?) cell-reference?)])
+
+(provide/contract
+ [validate (->* (quotable?)
+                (#:error-style (or/c 'stop 'warning 'information)
+                               #:error-title    (or/c string? #f)
+                               #:error-message  (or/c string? #f)
+                               #:prompt-title   (or/c string? #f)
+                               #:prompt-message (or/c string? #f))
+                validation-rule?)])

@@ -2,9 +2,7 @@
 
 (require "base.ss")
 
-
-(require "struct.ss"
-         "formula/formula.ss")
+(require "struct.ss")
 
 ; Procedures -------------------------------------
 

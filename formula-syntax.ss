@@ -1,7 +1,9 @@
 #lang scheme/base
 
+(require "base.ss")
+
 (require (for-syntax scheme/base
-                     "syntax-internal.ss")
+                     "formula-syntax-internal.ss")
          "struct.ss")
 
 (define-syntax (fx stx)
