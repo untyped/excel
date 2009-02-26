@@ -242,4 +242,11 @@
  [outline-range (->* (range?) (border-style? color?) range?)]
  [stripe-rows   (->* (range?) (natural-number/c color? color?) range?)]
  [stripe-cols   (->* (range?) (natural-number/c color? color?) range?)]
- [tabulate      (->* (range?) (range? range? border-style? border-style? color? color?) range?)])
+ [tabulate      (->* (range?)
+                     ((or/c range? #f)
+                      (or/c range? #f)
+                      border-style?
+                      border-style?
+                      color?
+                      color?)
+                     range?)])

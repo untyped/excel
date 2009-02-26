@@ -91,10 +91,7 @@
 ; cache worksheet range natural natural -> xml
 (define (conditional-format-xml cache sheet range x0 y0)
   (xml (conditionalFormatting
-        (@ [sqref ,(format "~a:~a"
-                           (xy->ref x0 y0)
-                           (xy->ref (sub1 (+ x0 (range-width range)))
-                                    (sub1 (+ y0 (range-height range)))))])
+        (@ [sqref ,(range-address range x0 y0)])
         ,@(for/list ([cf (in-list (range-conditional-formats range))])
             (match cf
               [(struct conditional-format (formula style priority))
@@ -108,10 +105,7 @@
   (match (range-validation-rule range)
     [(struct validation-rule (formula errorStyle errorTitle error promptTitle prompt))
      (xml (dataValidation
-           (@ [sqref            ,(format "~a:~a"
-                                         (xy->ref x0 y0)
-                                         (xy->ref (sub1 (+ x0 (range-width range)))
-                                                  (sub1 (+ y0 (range-height range)))))]
+           (@ [sqref            ,(range-address range x0 y0)]
               [type             "custom"]
               [allowBlank       "1"]
               [showInputMessage ,(if (or promptTitle prompt) "1" "0")]

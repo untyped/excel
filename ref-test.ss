@@ -2,7 +2,8 @@
 
 (require "test-base.ss")
 
-(require "ref.ss"
+(require "range.ss"
+         "ref.ss"
          "struct.ss")
 
 (define ref-tests
@@ -55,7 +56,13 @@
       (check-equal? (call-with-values (cut ref->sheet+xy "a2") list) (list #f 0 1))
       (check-equal? (call-with-values (cut ref->sheet+xy "$A$2") list) (list #f 0 1))
       (check-equal? (call-with-values (cut ref->sheet+xy "Sheet1!$A$2") list)
-                    (list "Sheet1" 0 1)))))
+                    (list "Sheet1" 0 1)))
+    
+    
+    (test-case "range-address"
+      (check-equal? (range-address (make-cell 123) 2 1) "C2")
+      (check-equal? (range-address (hc-append (make-cell 123) (make-cell 123)) 2 1) "C2:D2")
+      (check-equal? (range-address (vc-append (make-cell 123) (make-cell 123)) 2 1) "C2:C3"))))
 
 ; Provide statements -----------------------------
 

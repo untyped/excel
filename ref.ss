@@ -2,7 +2,10 @@
 
 (require "base.ss")
 
-(require "struct-internal.ss")
+(require scheme/string
+         "struct-internal.ss")
+
+; Basic conversion procedures --------------------
 
 ; natural natural [boolean] [boolean] -> string
 (define (xy->ref x y [absolute-x? #f] [absolute-y? #f])
@@ -74,19 +77,39 @@
           (lambda (row)
             (sub1 (string->number row)))))
 
+; Range addresses --------------------------------
+
+; range natural natural -> string
+(define (range-address range x0 y0)
+  (let ([w (range-width range)]
+        [h (range-height range)])
+    (if (and (= w 1) (= h 1))
+        (xy->ref x0 y0)
+        (format "~a:~a"
+                (xy->ref x0 y0)
+                (xy->ref (sub1 (+ x0 w))
+                         (sub1 (+ y0 h)))))))
+
+; (listof (list range natural natural)) -> string
+(define (range-addresses specs)
+  (string-join (for/list ([spec (in-list specs)])
+                 (apply range-address spec))
+               " "))
+
 ; Provide statements -----------------------------
 
 (provide/contract
- [xy->ref       (->* (natural-number/c natural-number/c)
-                          (boolean? boolean?)
-                          string?)]
- [sheet+xy->ref (->* ((or/c worksheet? #f) natural-number/c natural-number/c)
-                          (boolean? boolean?)
-                          string?)]
- [ref->xy       (-> string? (values natural-number/c natural-number/c))]
- [ref->sheet+xy (-> string? (values (or/c string? #f) natural-number/c natural-number/c))]
- [x->col        (-> natural-number/c string?)]
- [col->x        (-> string? natural-number/c)]
- [y->row        (-> natural-number/c string?)]
- [row->y        (-> string? natural-number/c)])
- 
+ [xy->ref         (->* (natural-number/c natural-number/c)
+                       (boolean? boolean?)
+                       string?)]
+ [sheet+xy->ref   (->* ((or/c worksheet? #f) natural-number/c natural-number/c)
+                       (boolean? boolean?)
+                       string?)]
+ [ref->xy         (-> string? (values natural-number/c natural-number/c))]
+ [ref->sheet+xy   (-> string? (values (or/c string? #f) natural-number/c natural-number/c))]
+ [x->col          (-> natural-number/c string?)]
+ [col->x          (-> string? natural-number/c)]
+ [y->row          (-> natural-number/c string?)]
+ [row->y          (-> string? natural-number/c)]
+ [range-address   (-> range? natural-number/c natural-number/c string?)]
+ [range-addresses (-> (listof (list/c range? natural-number/c natural-number/c)) string?)])
