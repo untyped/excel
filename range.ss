@@ -2,13 +2,14 @@
 
 (require "base.ss")
 
-(require "struct.ss")
+(require scheme/list
+         "struct.ss")
 
 ; Procedures -------------------------------------
 
 ; (U range quotable) ... [#:style style] -> union
 (define (hc-append #:style [style empty-style] . ranges)
-  (let* ([ranges         (map quote-range ranges)]
+  (let* ([ranges         (flatten-ranges ranges)]
          [overall-width  (apply + (map range-width ranges))]
          [overall-height (apply max (map range-height ranges))])
     (make-union (compose ranges
@@ -22,7 +23,7 @@
 
 ; (U range quotable) ... [#:style style] -> union
 (define (ht-append #:style [style empty-style] . ranges)
-  (let* ([ranges         (map quote-range ranges)]
+  (let* ([ranges         (flatten-ranges ranges)]
          [overall-width  (apply + (map range-width ranges))]
          [overall-height (apply max (map range-height ranges))])
     (make-union (compose ranges
@@ -36,7 +37,7 @@
 
 ; (U range quotable) ... [#:style style] -> union
 (define (hb-append #:style [style empty-style] . ranges)
-  (let* ([ranges         (map quote-range ranges)]
+  (let* ([ranges         (flatten-ranges ranges)]
          [overall-width  (apply + (map range-width ranges))]
          [overall-height (apply max (map range-height ranges))])
     (make-union (compose ranges
@@ -50,7 +51,7 @@
 
 ; (U range quotable) ... [#:style style] -> union
 (define (vc-append #:style [style empty-style] . ranges)
-  (let* ([ranges         (map quote-range ranges)]
+  (let* ([ranges         (flatten-ranges ranges)]
          [overall-width  (apply max (map range-width ranges))]
          [overall-height (apply + (map range-height ranges))])
     (make-union (compose ranges
@@ -64,7 +65,7 @@
 
 ; (U range quotable) ... [#:style style] -> union
 (define (vl-append #:style [style empty-style] . ranges)
-  (let* ([ranges         (map quote-range ranges)]
+  (let* ([ranges         (flatten-ranges ranges)]
          [overall-width  (apply max (map range-width ranges))]
          [overall-height (apply + (map range-height ranges))])
     (make-union (compose ranges
@@ -78,7 +79,7 @@
 
 ; (U range quotable) ... [#:style style] -> union
 (define (vr-append #:style [style empty-style] . ranges)
-  (let* ([ranges         (map quote-range ranges)]
+  (let* ([ranges         (flatten-ranges ranges)]
          [overall-width  (apply max (map range-width ranges))]
          [overall-height (apply + (map range-height ranges))])
     (make-union (compose ranges
@@ -144,7 +145,7 @@
                                                                #:left   (and (= x 0) line))))))))
 
 ; range [natural] [color] [color] -> range
-(define (stripe-rows range [stripe-size 1] [color1 (rgb 1 1 1)] [color2 (rgb .8 .8 1)])
+(define (stripe-rows range [stripe-size 1] [color1 (rgb 1 1 1)] [color2 (rgb .9 .9 1)])
   (let ([twice-stripe-size (* 2 stripe-size)])
     (style-range range
                  (make-uncompiled-style
@@ -225,15 +226,30 @@
       item
       (make-cell item)))
 
+; tree -> (listof range)
+;
+; where tree : (U range+quotable (listof tree))
+(define (flatten-ranges tree)
+  (let ([ans (flatten tree)])
+    (if (pair? ans)
+        (map quote-range ans)
+        (raise-type-error 'ranges-rest-argument "expected one or more ranges" tree))))
+
 ; Provide statements -----------------------------
 
+; any -> boolean
+(define (treeof-range+quotable? item)
+  (or (range+quotable? item)
+      (null? item)
+      (and (pair? item) (andmap treeof-range+quotable? item))))
+
 (provide/contract
- [hc-append     (->* () (#:style style?) #:rest (listof range+quotable?) union?)]
- [ht-append     (->* () (#:style style?) #:rest (listof range+quotable?) union?)]
- [hb-append     (->* () (#:style style?) #:rest (listof range+quotable?) union?)]
- [vc-append     (->* () (#:style style?) #:rest (listof range+quotable?) union?)]
- [vl-append     (->* () (#:style style?) #:rest (listof range+quotable?) union?)]
- [vr-append     (->* () (#:style style?) #:rest (listof range+quotable?) union?)]
+ [hc-append     (->* () (#:style style?) #:rest treeof-range+quotable? union?)]
+ [ht-append     (->* () (#:style style?) #:rest treeof-range+quotable? union?)]
+ [hb-append     (->* () (#:style style?) #:rest treeof-range+quotable? union?)]
+ [vc-append     (->* () (#:style style?) #:rest treeof-range+quotable? union?)]
+ [vl-append     (->* () (#:style style?) #:rest treeof-range+quotable? union?)]
+ [vr-append     (->* () (#:style style?) #:rest treeof-range+quotable? union?)]
  [l-pad         (->* (range+quotable?) (natural-number/c #:style style?) range?)]
  [r-pad         (->* (range+quotable?) (natural-number/c #:style style?) range?)]
  [t-pad         (->* (range+quotable?) (natural-number/c #:style style?) range?)]

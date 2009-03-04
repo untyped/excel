@@ -68,9 +68,50 @@
 (define (create-union parts x y [style empty-style] #:validate [validation-rule #f] #:cf [conditional-formats null])
   (make-union style validation-rule conditional-formats parts x y))
 
-; any [style] [#:validate (U validation-rule #f)] [#:cf (listof conditional-format)] -> cell
-(define (create-cell val [style empty-style] #:validate [validation-rule #f] #:cf [conditional-formats null])
-  (make-cell style validation-rule conditional-formats val))
+;  any
+;  [style]
+;  [#:validate     (U validation-rule #f)]
+;  [#:cf           (listof conditional-format)]
+;  [#:min-width    (U 0+ #f)]
+;  [#:max-width    (U 0+ #f)]
+;  [#:min-height   (U 0+ #f)]
+;  [#:max-height   (U 0+ #f)]
+;  [#:hide-row?    boolean]
+;  [#:hide-column? boolean]
+; ->
+;  cell
+(define (create-cell val            [style               empty-style]
+                     #:validate     [validation-rule     #f]
+                     #:cf           [conditional-formats null]
+                     #:min-width    [min-width           #f]
+                     #:max-width    [max-width           #f]
+                     #:min-height   [min-height          #f]
+                     #:max-height   [max-height          #f]
+                     #:hide-row?    [hide-row?           #f]
+                     #:hide-column? [hide-column?        #f])
+  (make-cell style
+             validation-rule
+             conditional-formats
+             val
+             (and (or min-width max-width min-height max-height hide-row? hide-column?)
+                  (make-cell-dims min-width 
+                                  max-width
+                                  min-height
+                                  max-height
+                                  hide-row?
+                                  hide-column?))))
+
+; cell -> natural
+;
+; A prediction of the number of characters a cell will contain:
+(define (cell-value-length cell)
+  (match (cell-value cell)
+    [(? string?  str)  (add1 (string-length str))]
+    [(? symbol?  sym)  (add1 (string-length (symbol->string sym)))]
+    [(? bytes?   byt)  (add1 (bytes-length byt))]
+    [(? number?  num)  (add1 (string-length (number->string num)))]
+    [(? boolean? bool) 5] ; (string-length "false")
+    [(? formula? form) 6]))
 
 ; Formula and expression wrappers ----------------
 
@@ -163,20 +204,26 @@
                                                         (style? #:validate (or/c validation-rule? #f) #:cf (listof conditional-format?))
                                                         union?)]
  [rename create-cell           make-cell           (->* (quotable?)
-                                                        (style? #:validate (or/c validation-rule? #f) #:cf (listof conditional-format?))
+                                                        (style? #:validate     (or/c validation-rule? #f)
+                                                                #:cf           (listof conditional-format?)
+                                                                #:min-width    (or/c (and/c number? (>=/c 0)) #f)
+                                                                #:max-width    (or/c (and/c number? (>=/c 0)) #f)
+                                                                #:min-height   (or/c (and/c number? (>=/c 0)) #f)
+                                                                #:max-height   (or/c (and/c number? (>=/c 0)) #f)
+                                                                #:hide-row?    boolean?
+                                                                #:hide-column? boolean?)
                                                         cell?)]
+ [cell-value-length                                (-> cell? natural-number/c)]
  [rename create-formula        make-formula        (->* (quotable?) (boolean?) formula?)]
  [rename create-operator       make-operator       (->* (symbol?) () #:rest (listof quotable?) operator?)]
  [rename create-function       make-function       (->* (symbol?) () #:rest (listof quotable?) function?)]
  [rename create-array          make-array          (->* () () #:rest (listof quotable?) array?)]
  [rename create-literal        make-literal        (-> literal-value? literal?)]
- [rename create-cell-reference make-cell-reference (->* (cell?) (boolean? boolean?) cell-reference?)])
-
-(provide/contract
- [validate (->* (quotable?)
-                (#:error-style (or/c 'stop 'warning 'information)
-                               #:error-title    (or/c string? #f)
-                               #:error-message  (or/c string? #f)
-                               #:prompt-title   (or/c string? #f)
-                               #:prompt-message (or/c string? #f))
-                validation-rule?)])
+ [rename create-cell-reference make-cell-reference (->* (cell?) (boolean? boolean?) cell-reference?)]
+ [validate                                         (->* (quotable?)
+                                                        (#:error-style (or/c 'stop 'warning 'information)
+                                                                       #:error-title    (or/c string? #f)
+                                                                       #:error-message  (or/c string? #f)
+                                                                       #:prompt-title   (or/c string? #f)
+                                                                       #:prompt-message (or/c string? #f))
+                                                        validation-rule?)])

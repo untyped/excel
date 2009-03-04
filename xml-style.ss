@@ -2,7 +2,8 @@
 
 (require "base.ss")
 
-(require "struct.ss"
+(require scheme/math
+         "struct.ss"
          "xml-cache.ss"
          "xml-internal.ss")
 
@@ -35,21 +36,38 @@
   (define consume-border!
     (make-border-consumer cache border-accum))
   
-  ; style natural natural -> natural
+  ; style natural natural -> compiled-style natural
   (define consume-style!
     (let ([consume-style/internal! (make-style-consumer cache style-accum)])
       (lambda (style0 x y)
         (let ([style (compile-style style0 x y)])
-          (consume-style/internal!
+          (values
            style
-           (consume-number-format! (compiled-style-number-format style))
-           (consume-font!          (compiled-style-font          style))
-           (consume-fill!          (compiled-style-fill          style))
-           (consume-border!        (compiled-style-border        style)))))))
+           (consume-style/internal!
+            style
+            (consume-number-format! (compiled-style-number-format style))
+            (consume-font!          (compiled-style-font          style))
+            (consume-fill!          (compiled-style-fill          style))
+            (consume-border!        (compiled-style-border        style))))))))
   
   ; compiled-style -> natural
   (define consume-diff-style!
     (make-diff-style-consumer cache diff-style-accum))
+  
+  ; range worksheet compiled-style natural natural -> void
+  ;
+  ; Multiply the string length of the printed value of the cell
+  ; by these values to get the suggested column width:
+  (define (cache-cell-dimensions! range sheet style x y)
+    (match (cell-dimensions range)
+      [(struct cell-dims (min-width max-width min-height max-height hide-row? hide-column?))
+       (when (or min-width max-width)
+         (cache-col-width-set! cache sheet x (constrain (or (cache-col-width-ref cache sheet x) 10) min-width max-width)))
+       (when (or min-height max-height)
+         (cache-row-height-set! cache sheet y (constrain (or (cache-row-height-ref cache sheet y) 1) min-height max-height)))
+       (when hide-column? (cache-col-visibility-set! cache sheet x #f))
+       (when hide-row?    (cache-row-visibility-set! cache sheet y #f))]
+      [#f (void)]))
   
   (for ([sheet (in-list (workbook-sheets book))])
     ; Traverse the wokrsheet tree accumulating:
@@ -75,14 +93,15 @@
            (for* ([y (in-range (range-height range))]
                   [x (in-range (range-width  range))])
                  (unless (ormap (cut part-contains? <> x y) parts)
-                   (let ([style-id (consume-style! style x y)])
+                   (let-values ([(style style-id) (consume-style! style x y)])
                      (unless (zero? style-id)
                        (cache-value-set! cache sheet (+ x0 x) (+ y0 y) #f style-id)))))))
-       ; Cells: cache style, value and address mappings:
+       ; Cells: cache style, value, address and column width mappings:
        (when (cell? range)
-         (let ([style-id (consume-style! style 0 0)])
+         (let-values ([(style style-id) (consume-style! style 0 0)])
            (cache-value-set! cache sheet x0 y0 range style-id)
-           (cache-address-set! cache range sheet x0 y0)))
+           (cache-address-set! cache range sheet x0 y0)
+           (cache-cell-dimensions! range sheet style x0 y0)))
        ; Unions and cells: cache style mappings for diff styles:
        (for ([cf (in-list (range-conditional-formats range))])
          (consume-diff-style! (conditional-format-style cf))))
@@ -333,6 +352,21 @@
                   ,(border-xml border))
                ,(opt-xml (or (boolean? hidden-raw) (boolean? locked-raw))
                   ,(protection-xml hidden-raw locked-raw))))]))
+
+; Helpers ----------------------------------------
+
+; (_ number (U number #f) (U number #f)) -> number
+(define-syntax-rule (constrain *val* *min-val* *max-val*)
+  (let ([val     *val*]
+        [min-val *min-val*]
+        [max-val *max-val*])
+    (if min-val
+        (if max-val
+            (max min-val (min max-val val))
+            (max min-val val))
+        (if max-val
+            (min max-val val)
+            val))))
 
 ; Provide statements -----------------------------
 

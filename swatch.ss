@@ -9,7 +9,7 @@
 (define (make-matrix width height [style empty-style])
   (make-union (for*/list ([x (in-range 0 width)]
                           [y (in-range 0 height)])
-                         (make-part (make-cell (format "~a,~a" x y)) x y))
+                         (make-part (make-cell (format "~a,~a" x y) #:max-width 4) x y))
               width height style))
 
 ; style

@@ -13,9 +13,28 @@
   (xml ,standalone-header-xml
        (worksheet (@ [xmlns   ,spreadsheetml-namespace]
                      [xmlns:r ,workbook-namespace])
+                  ,(cols-xml cache sheet)
                   ,(sheet-data-xml cache sheet)
                   ,(sheet-protection-xml cache sheet)
                   ,(cf+validation-xml cache sheet))))
+
+; cache worksheet -> xml
+(define (cols-xml cache sheet)
+  (let ([cols (reverse (for/fold ([accum null])
+                                 ([x (in-range (range-width (worksheet-data sheet)))])
+                                 (let ([width  (cache-col-width-ref cache sheet x)]
+                                       [hidden (if (cache-col-visibility-ref cache sheet x) #f "true")])
+                                   (if (or width hidden)
+                                       (cons (xml (col (@ [min ,(add1 x)]
+                                                          [max ,(add1 x)]
+                                                          ,(opt-xml-attr hidden)
+                                                          ,(opt-xml-attr width customWidth "true")
+                                                          ,(opt-xml-attr width))))
+                                             accum)
+                                       accum))))])
+  (if (null? cols)
+      (xml)
+      (xml (cols ,@cols)))))
 
 ; cache worksheet -> xml
 (define (sheet-data-xml cache sheet)
@@ -28,7 +47,7 @@
                                                 (match (cell-value cell)
                                                   [#t              (xml (c (@ [r ,r] [s ,s] [t "b"]) (v 1)))]
                                                   [#f              (xml (c (@ [r ,r] [s ,s])))]
-                                                  [(? number? n)   (xml (c (@ [r ,r] [s ,s]) (v ,n)))]
+                                                  [(? number? n)   (xml (c (@ [r ,r] [s ,s]) (v ,(exact->inexact n))))]
                                                   [(? string? str) (xml (c (@ [r ,r] [s ,s] [t "inlineStr"]) (is (t ,str))))]
                                                   [(? symbol? sym) (xml (c (@ [r ,r] [s ,s] [t "inlineStr"]) (is (t ,sym))))]
                                                   [(? bytes?  byt) (xml (c (@ [r ,r] [s ,s] [t "inlineStr"]) (is (t ,byt))))]
@@ -39,8 +58,13 @@
                                                                               ,(expression->string cache sheet cell x y (formula-expr f)))))])
                                                 (xml (c (@ [r ,r] [s ,s]))))))))])
                         (opt-xml (not (andmap xml-empty? cells))
-                          (row (@ [r ,(y->row y)])
-                               ,@cells)))))))
+                          ,(let ([ht     (cache-row-height-ref     cache sheet y)]
+                                 [hidden (if (cache-row-visibility-ref cache sheet y) #f 1)])
+                             (xml (row (@ [r ,(y->row y)]
+                                          ,(opt-xml-attr hidden)
+                                          ,(opt-xml-attr ht customHeight 1)
+                                          ,(opt-xml-attr ht))
+                                       ,@cells)))))))))
 
 ; cache worksheet -> xml
 (define (sheet-protection-xml cache sheet)

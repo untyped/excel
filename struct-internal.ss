@@ -41,8 +41,21 @@
 ; (struct style (U validation-rule #f) (listof conditional-format))
 (define-struct (range data) (style validation-rule conditional-formats) #:transparent)
 
-; (struct style (U validation-rule #f) (listof conditional-format) any)
-(define-struct (cell range) (value) #:transparent)
+; (struct style (U validation-rule #f) (listof conditional-format) any (U cell-dimensions #f))
+(define-struct (cell range)
+  (value dimensions)
+  #:transparent
+  #:property prop:custom-write
+  (lambda (cell out write?)
+    (define show (if write? write display))
+    (display "#(struct:cell " out)
+    (show (cell-value cell) out)
+    (display ")" out)))
+
+; (struct (U number #f) (U number #f) (U number #f) (U number #f) boolean boolean)
+(define-struct cell-dims
+  (min-width max-width min-height max-height hide-row? hide-column?) 
+  #:transparent)
 
 ; (struct style (U validation-rule #f) (listof conditional-format) (listof part) natural natural)
 (define-struct (union range) (parts width height) #:transparent)
@@ -183,7 +196,14 @@
  [struct (cell range)                ([style                         style?]
                                       [validation-rule               (or/c validation-rule? #f)]
                                       [conditional-formats           (listof conditional-format?)]
-                                      [value                         quotable?])]
+                                      [value                         quotable?]
+                                      [dimensions                    (or/c cell-dims? #f)])]
+ [struct cell-dims                   ([min-width                     (or/c (and/c number? (>=/c 0)) #f)]
+                                      [max-width                     (or/c (and/c number? (>=/c 0)) #f)]
+                                      [min-height                    (or/c (and/c number? (>=/c 0)) #f)]
+                                      [max-height                    (or/c (and/c number? (>=/c 0)) #f)]
+                                      [hide-row?                     boolean?]
+                                      [hide-column?                  boolean?])]
  [struct (union range)               ([style                         style?]
                                       [validation-rule               (or/c validation-rule? #f)]
                                       [conditional-formats           (listof conditional-format?)]

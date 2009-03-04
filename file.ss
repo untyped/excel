@@ -4,12 +4,17 @@
 
 (require file/zip
          scheme/file
-         (unlib-in file)
+         (unlib-in file profile)
          "xml-cache.ss"
          "path.ss"
          "ref.ss"
          "struct.ss"
          "xml.ss")
+
+(define-timer zip-timer)
+(define-timer write-files-timer)
+(define-timer calc-styles-timer)
+(define-timer calc-sheets-timer)
 
 ;  workbook
 ;  absolute-path 
@@ -40,15 +45,17 @@
          (make-directory* (build-path "_rels"))
          (make-directory* (build-path "xl/_rels"))
          (make-directory* (build-path "xl/worksheets"))
-         (apply zip
-                zip-path
-                (write-xml-file (content-types-path) (content-types-xml book))
-                (write-xml-file (package-relationships-path) (package-relationships-xml book))
-                (write-xml-file (package-part-path book) (workbook-xml book))
-                (write-xml-file (workbook-relationships-path book) (workbook-relationships-xml book))
-                (write-xml-file (stylesheet-path book) (stylesheet-xml! cache book))
-                (for/list ([sheet (in-list (workbook-sheets book))])
-                  (write-xml-file (package-part-path sheet) (worksheet-xml cache sheet))))))
+         (profile zip-timer
+                  apply
+                  zip
+                  zip-path
+                  (profile write-files-timer write-xml-file (content-types-path)               (content-types-xml book))
+                  (profile write-files-timer write-xml-file (package-relationships-path)       (package-relationships-xml book))
+                  (profile write-files-timer write-xml-file (package-part-path book)           (workbook-xml book))
+                  (profile write-files-timer write-xml-file (workbook-relationships-path book) (workbook-relationships-xml book))
+                  (profile write-files-timer write-xml-file (stylesheet-path book)             (profile calc-styles-timer stylesheet-xml! cache book))
+                  (for/list ([sheet (in-list (workbook-sheets book))])
+                    (profile write-files-timer write-xml-file (package-part-path sheet) (profile calc-sheets-timer worksheet-xml cache sheet))))))
      (unless (file-exists? zip-path)
        (error "file was not created")))
    (lambda ()
