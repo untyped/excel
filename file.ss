@@ -2,7 +2,7 @@
 
 (require "base.ss")
 
-(require file/zip
+(require #;file/zip
          scheme/file
          (unlib-in file profile)
          "xml-cache.ss"
@@ -45,17 +45,16 @@
          (make-directory* (build-path "_rels"))
          (make-directory* (build-path "xl/_rels"))
          (make-directory* (build-path "xl/worksheets"))
-         (profile zip-timer
-                  apply
-                  zip
-                  zip-path
-                  (profile write-files-timer write-xml-file (content-types-path)               (content-types-xml book))
-                  (profile write-files-timer write-xml-file (package-relationships-path)       (package-relationships-xml book))
-                  (profile write-files-timer write-xml-file (package-part-path book)           (workbook-xml book))
-                  (profile write-files-timer write-xml-file (workbook-relationships-path book) (workbook-relationships-xml book))
-                  (profile write-files-timer write-xml-file (stylesheet-path book)             (profile calc-styles-timer stylesheet-xml! cache book))
-                  (for/list ([sheet (in-list (workbook-sheets book))])
-                    (profile write-files-timer write-xml-file (package-part-path sheet) (profile calc-sheets-timer worksheet-xml cache sheet))))))
+         (let ([args (list zip-path
+                           (profile write-files-timer write-xml-file (content-types-path)               (content-types-xml book))
+                           (profile write-files-timer write-xml-file (package-relationships-path)       (package-relationships-xml book))
+                           (profile write-files-timer write-xml-file (package-part-path book)           (workbook-xml book))
+                           (profile write-files-timer write-xml-file (workbook-relationships-path book) (workbook-relationships-xml book))
+                           (profile write-files-timer write-xml-file (stylesheet-path book)             (profile calc-styles-timer stylesheet-xml! cache book))
+                           (for/list ([sheet (in-list (workbook-sheets book))])
+                             (profile write-files-timer write-xml-file (package-part-path sheet) (profile calc-sheets-timer worksheet-xml cache sheet))))])
+           (unless (profile zip-timer apply zip/system args)
+             (error (format "zip command failed: zip ~a" (string-join (map path->string args) " ")))))))
      (unless (file-exists? zip-path)
        (error "file was not created")))
    (lambda ()
@@ -63,6 +62,10 @@
        (delete-directory/files temp-dir)))))
 
 ; Helpers ----------------------------------------
+
+; path ... -> boolean
+(define (zip/system . paths)
+  (apply system* "zip" (map path->string paths)))
 
 ; -> path
 (define (make-temp-dir-path)

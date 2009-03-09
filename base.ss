@@ -14,6 +14,12 @@
          (planet untyped/unlib:3/debug)
          (planet untyped/unlib:3/exn))
 
+; Configuration ----------------------------------
+
+; (parameter (U natural #f))
+(define max-function-arity         (make-parameter 29))
+(define max-function-nesting-depth (make-parameter 8))
+
 ; Provide statements -----------------------------
 
 (provide (all-from-out scheme/contract
@@ -24,3 +30,7 @@
                        (planet untyped/mirrors:1)
                        (planet untyped/unlib:3/debug)
                        (planet untyped/unlib:3/exn)))
+
+(provide/contract
+ [max-function-arity         (parameter/c (or/c natural-number/c #f))]
+ [max-function-nesting-depth (parameter/c (or/c natural-number/c #f))])

@@ -125,7 +125,39 @@
 
 ; symbol (U expression quotable) ... -> function
 (define (create-function name . args)
-  (make-function name (map quote-expression args)))
+  (let ([max-arity (max-function-arity)])
+    (when (and max-arity (> (length args) max-arity))
+      (error (format "too many arguments (~a out of ~a)"
+                     (length args)
+                     max-arity))))
+  (let ([max-depth (max-function-nesting-depth)]
+        [ans (make-function name (map quote-expression args))])
+    (when (and max-depth (> (expression-function-nesting-depth ans) max-depth))
+      (error (format "too many levels of function nesting (~a out of ~a)" 
+                     (expression-function-nesting-depth ans)
+                     max-depth)))
+    ans))
+
+; symbol (U expression quotable) ... -> expression
+(define (optimize-commutative-function name . args)
+  (let ([max-arity (max-function-arity)]
+        [arity     (length args)])
+    (if (and max-arity (> arity max-arity))
+        (let loop ([args args] [arg-accum null] [group-accum null])
+          (match args
+            [(list)
+             (if (= (length arg-accum) max-arity)
+                 (apply optimize-commutative-function name (append (reverse group-accum) (list (apply create-function name (reverse arg-accum)))))
+                 (apply optimize-commutative-function name (append (reverse group-accum) (reverse arg-accum))))]
+            [(list-rest curr rest)
+             (if (= (length arg-accum) max-arity)
+                 (loop rest
+                       (list curr)
+                       (cons (apply create-function name (reverse arg-accum)) group-accum))
+                 (loop rest
+                       (cons curr arg-accum)
+                       group-accum))]))
+        (apply create-function name args))))
 
 ; (U expression quotable) ... -> array
 (define (create-array . args)
@@ -144,6 +176,19 @@
 ; cell [boolean] [boolean] -> cell-reference
 (define (create-cell-reference cell [abs-x? #f] [abs-y? #f])
   (make-cell-reference cell abs-x? abs-y?))
+
+; expression -> natural
+(define expression-function-nesting-depth
+  (match-lambda
+    [(struct function (_ args))
+     (add1 (apply max (cons 0 (map expression-function-nesting-depth args))))]
+    [(struct operator (_ args))
+     (apply max (cons 0 (map expression-function-nesting-depth args)))]
+    [(struct array (data))
+     (apply max (cons 0 (map expression-function-nesting-depth data)))]
+    [(struct formula (expr _))
+     (expression-function-nesting-depth expr)]
+    [_ 0]))
 
 ; Validation rules -------------------------------
 
@@ -217,9 +262,11 @@
  [rename create-formula        make-formula        (->* (quotable?) (boolean?) formula?)]
  [rename create-operator       make-operator       (->* (symbol?) () #:rest (listof quotable?) operator?)]
  [rename create-function       make-function       (->* (symbol?) () #:rest (listof quotable?) function?)]
+ [optimize-commutative-function                    (->* (symbol?) () #:rest (listof quotable?) function?)]
  [rename create-array          make-array          (->* () () #:rest (listof quotable?) array?)]
  [rename create-literal        make-literal        (-> literal-value? literal?)]
  [rename create-cell-reference make-cell-reference (->* (cell?) (boolean? boolean?) cell-reference?)]
+ [expression-function-nesting-depth                (-> expression? natural-number/c)]
  [validate                                         (->* (quotable?)
                                                         (#:error-style (or/c 'stop 'warning 'information)
                                                                        #:error-title    (or/c string? #f)
