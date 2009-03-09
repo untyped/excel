@@ -53,8 +53,8 @@
     (test-equal? "rgba" (rgba .2 .4 .6 .8) (make-rgba-color .2 .4 .6 .8))
     
     (test-case "rgba-color-hex"
-      (check-equal? (rgba-color-hex (make-rgba-color 0   0   0   0))   "00000000")
-      (check-equal? (rgba-color-hex (make-rgba-color 1   1   1   1))   "FFFFFFFF")
+      (check-equal? (rgba-color-hex (make-rgba-color 0    0   0    0)) "00000000")
+      (check-equal? (rgba-color-hex (make-rgba-color 1    1   1    1)) "FFFFFFFF")
       (check-equal? (rgba-color-hex (make-rgba-color 0.25 0.5 0.75 1)) "FF3F7FBF")
       (check-equal? (rgba-color-hex (make-rgba-color 1/4 2/4 3/4 4/4)) "FF3F7FBF"))
     

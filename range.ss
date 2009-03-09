@@ -145,7 +145,7 @@
                                                                #:left   (and (= x 0) line))))))))
 
 ; range [natural] [color] [color] -> range
-(define (stripe-rows range [stripe-size 1] [color1 (rgb 1 1 1)] [color2 (rgb .9 .9 1)])
+(define (stripe-rows range [stripe-size 1] [color1 (rgb 1 1 1)] [color2 (rgb .5 1 1)])
   (let ([twice-stripe-size (* 2 stripe-size)])
     (style-range range
                  (make-uncompiled-style
@@ -156,7 +156,7 @@
                                                                      color2))))))))
 
 ; range [natural] [color] [color] -> range
-(define (stripe-cols range [stripe-size 1] [color1 (rgb 1 1 1)] [color2 (rgb .9 .9 1)])
+(define (stripe-cols range [stripe-size 1] [color1 (rgb 1 1 1)] [color2 (rgb .5 1 1)])
   (let ([twice-stripe-size (* 2 stripe-size)])
     (style-range range
                  (make-uncompiled-style
@@ -173,7 +173,7 @@
                   [outer-border-style (border-style medium)]
                   [inner-border-style (border-style thin)]
                   [color1             (rgb 1 1 1)]
-                  [color2             (rgb .9 .9 1)])
+                  [color2             (rgb .5 1 1)])
   ; range
   (define col-data
     (stripe-rows (if row-headers
@@ -185,7 +185,10 @@
                  color2))
   ; range
   (outline-range (if col-headers
-                     (vr-append (outline-range col-headers inner-border-style)
+                     (vl-append (outline-range (if row-headers
+                                                   (l-pad col-headers (range-width row-headers))
+                                                   col-headers)
+                                               inner-border-style)
                                 col-data)
                      col-data)
                  outer-border-style))
