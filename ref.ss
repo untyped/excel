@@ -79,16 +79,28 @@
 
 ; Range addresses --------------------------------
 
-; range natural natural -> string
-(define (range-address range x0 y0)
-  (let ([w (range-width range)]
-        [h (range-height range)])
-    (if (and (= w 1) (= h 1))
-        (xy->ref x0 y0)
-        (format "~a:~a"
-                (xy->ref x0 y0)
-                (xy->ref (sub1 (+ x0 w))
-                         (sub1 (+ y0 h)))))))
+; range [worksheet] natural natural -> string
+(define range-address
+  (case-lambda
+    [(range x0 y0)
+     (range-address range #f x0 y0)]
+    [(range sheet x0 y0)
+     (let ([w (range-width range)]
+           [h (range-height range)])
+       (if (and (= w 1) (= h 1))
+           (if sheet
+               (sheet+xy->ref sheet x0 y0)
+               (xy->ref x0 y0))
+           (format "~a:~a"
+                   (if sheet
+                       (sheet+xy->ref sheet x0 y0)
+                       (xy->ref x0 y0))
+                   (if sheet
+                       (sheet+xy->ref sheet
+                                      (sub1 (+ x0 w))
+                                      (sub1 (+ y0 h)))
+                       (xy->ref (sub1 (+ x0 w))
+                                (sub1 (+ y0 h)))))))]))
 
 ; (listof (list range natural natural)) -> string
 (define (range-addresses specs)
@@ -123,5 +135,6 @@
  [col->x          (-> string? natural-number/c)]
  [y->row          (-> natural-number/c string?)]
  [row->y          (-> string? natural-number/c)]
- [range-address   (-> range? natural-number/c natural-number/c string?)]
+ [range-address   (case-> (-> range? natural-number/c natural-number/c string?)
+                          (-> range? worksheet? natural-number/c natural-number/c string?))]
  [range-addresses (-> (listof (list/c range? natural-number/c natural-number/c)) string?)])

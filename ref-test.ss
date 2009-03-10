@@ -73,9 +73,13 @@
                     (list "'Sheet1'" 0 1)))
     
     (test-case "range-address"
-      (check-equal? (range-address (make-cell 123) 2 1) "C2")
-      (check-equal? (range-address (hc-append (make-cell 123) (make-cell 123)) 2 1) "C2:D2")
-      (check-equal? (range-address (vc-append (make-cell 123) (make-cell 123)) 2 1) "C2:C3"))
+      (let ([sheet (make-worksheet "She'et" (make-cell 123))])
+        (check-equal? (range-address (make-cell 123) 2 1) "C2")
+        (check-equal? (range-address (make-cell 123) sheet 2 1) "'She''et'!C2")
+        (check-equal? (range-address (hc-append (make-cell 123) (make-cell 123)) 2 1) "C2:D2")
+        (check-equal? (range-address (vc-append (make-cell 123) (make-cell 123)) 2 1) "C2:C3")
+        (check-equal? (range-address (hc-append (make-cell 123) (make-cell 123)) sheet 2 1) "'She''et'!C2:'She''et'!D2")
+        (check-equal? (range-address (vc-append (make-cell 123) (make-cell 123)) sheet 2 1) "'She''et'!C2:'She''et'!C3")))
     
     (test-case "escape-worksheet-name"
       (check-equal? (escape-worksheet-name "sheet") "'sheet'")

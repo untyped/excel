@@ -21,18 +21,22 @@
     [(struct function (name args))                (display-function cache sheet range x y name args out)]
     [(struct literal  (value))                    (display-literal cache sheet range x y value out)]
     [(struct array    (data))                     (display-array cache sheet range x y data out)]
-    [(struct cell-reference (cell abs-x? abs-y?)) (display-cell-reference cache sheet range x y cell abs-x? abs-y? out)]
+    [(struct range-reference (cell abs-x? abs-y?)) (display-range-reference cache sheet range x y cell abs-x? abs-y? out)]
     [(struct this-reference ())                   (display-this-reference cache sheet range x y out)]))
 
 ; cache worksheet range natural natural symbol (listof expression) output-port -> void
 (define (display-operator cache sheet range x y name args out)
-  (case name
-    [(%)  (display-postfix cache sheet range x y (operator->string name) args out)]
-    [else (display-infix cache sheet range x y (operator->string name) args out)]))
+  (match (operator-type name)
+    ['prefix   (display-prefix   cache sheet range x y (operator->string name) args out)]
+    ['postfix  (display-postfix  cache sheet range x y (operator->string name) args out)]
+    ['infix    (display-infix    cache sheet range x y (operator->string name) args out)]
+    ['function (display-function cache sheet range x y (operator->string name) args out)]))
 
 ; cache worksheet range natural natural symbol (listof expression) output-port -> void
 (define (display-function cache sheet range x y name args out)
-  (display (string-upcase (symbol->string name)) out)
+  (display (string-upcase (if (string? name)
+                              name
+                              (symbol->string name))) out)
   (display-infix cache sheet range x y "," args out))
 
 ; cache worksheet range natural natural literal-value output-port -> void
@@ -55,11 +59,11 @@
   (display-infix cache sheet range x y "," data out "{" "}"))
 
 ; cache worksheet range natural natural cell boolean boolean output-port -> void
-(define (display-cell-reference cache sheet range x y cell abs-x? abs-y? out)
-  (let-values ([(other-sheet x y) (cache-address-ref cache cell)])
+(define (display-range-reference cache sheet my-range my-x my-y range abs-x? abs-y? out)
+  (let-values ([(other-sheet x y) (cache-address-ref cache range)])
     (if (eq? sheet other-sheet)
-        (display (xy->ref                   x y abs-x? abs-y?) out)
-        (display (sheet+xy->ref other-sheet x y abs-x? abs-y?) out))))
+        (display (range-address range x y) out)
+        (display (range-address range other-sheet x y) out))))
 
 ; cache worksheet range natural natural output-port -> void
 (define (display-this-reference cache sheet range x y out)
@@ -81,6 +85,11 @@
       (display-expression cache sheet range x y (car args) out)
       (loop #f (cdr args))))
   (display closing-bracket out))
+
+; cache worksheet range natural natural (U symbol string) (listof expression) output-port -> void
+(define (display-prefix cache sheet range x y op args out)
+  (display op out)
+  (display-expression cache sheet range x y (car args) out))
 
 ; cache worksheet range natural natural (U symbol string) (listof expression) output-port -> void
 (define (display-postfix cache sheet range x y op args out)

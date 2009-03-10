@@ -52,15 +52,13 @@
              (list sheet x y)
              (list cell style-id)))
 
-; cache cell -> worksheet natural natural
+; cache range -> worksheet natural natural
 (define (cache-address-ref cache key)
   (apply values (hash-ref (cache-address-lookup cache) key)))
 
-; cache cell (list worksheet natural natural) -> void
-(define (cache-address-set! cache cell sheet x y)
-  (hash-set! (cache-address-lookup cache)
-             cell
-             (list sheet x y)))
+; cache range (list worksheet natural natural) -> void
+(define (cache-address-set! cache range sheet x y)
+  (hash-set! (cache-address-lookup cache) range (list sheet x y)))
 
 ; cache (U number-format font fill border compiled-style) [any] -> (U natural any)
 (define cache-style-ref
@@ -152,17 +150,8 @@
                                       (or/c cell? #f)
                                       natural-number/c
                                       void?)]
- [cache-address-ref              (->  cache?
-                                      cell?
-                                      (values worksheet?
-                                              natural-number/c
-                                              natural-number/c))]
- [cache-address-set!             (->  cache?
-                                      cell?
-                                      worksheet?
-                                      natural-number/c
-                                      natural-number/c
-                                      void?)]
+ [cache-address-ref              (->  cache? range? (values worksheet? natural-number/c natural-number/c))]
+ [cache-address-set!             (->  cache? range? worksheet? natural-number/c natural-number/c void?)]
  [cache-style-ref                (->* (cache? style+component/c) (any/c) any)]
  [cache-style-set!               (->  cache? style+component/c natural-number/c void?)]
  [cache-diff-style-ref           (->* (cache? compiled-style?) (any/c) any)]

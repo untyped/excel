@@ -3,6 +3,7 @@
 (require "test-base.ss")
 
 (require "cache-test.ss"
+         "formula-test.ss"
          "range-test.ss"
          "ref-test.ss"
          "struct-style-test.ss"
@@ -16,6 +17,7 @@
     cache-tests
     range-tests
     ref-tests
+    formula-tests
     struct-style-tests
     struct-tests
     xml-style-tests

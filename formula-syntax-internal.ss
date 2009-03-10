@@ -12,7 +12,7 @@
 ; syntax -> syntax
 (define (expand-expression stx)
   (syntax-case* stx (!ref !range !array !apply !cond !this quote unquote) symbolic-identifier=?
-    [(!ref arg ...)              #`(make-cell-reference arg ...)]
+    [(!ref arg ...)              #`(make-range-reference arg ...)]
     [(!this arg ...)             #`(make-this-reference arg ...)]
     [(!range arg ...)            #`(make-cell-range #,@(expand-args #'(arg ...)))]
     [(!array arg ...)            #`(make-array #,@(expand-args #'(arg ...)))]
@@ -35,7 +35,7 @@
     [(fn arg ...)                (identifier? #'fn)
                                  (if (function-name? (syntax->datum #'fn))
                                      #`(make-function 'fn #,@(expand-args #'(arg ...)))
-                                     (raise-syntax-error #f "bad function name" stx #'fn))]
+                                     (raise-syntax-error #f "bad Excel function name" stx #'fn))]
     [any                         (or (identifier? #'any) (literal-value? (syntax->datum #'any)))
                                  #`any]
     [_                           (error (format "bad syntax: ~s" (syntax->datum stx)))]))

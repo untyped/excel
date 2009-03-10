@@ -97,10 +97,10 @@
                      (unless (zero? style-id)
                        (cache-value-set! cache sheet (+ x0 x) (+ y0 y) #f style-id)))))))
        ; Cells: cache style, value, address and column width mappings:
+       (cache-address-set! cache range sheet x0 y0)
        (when (cell? range)
          (let-values ([(style style-id) (consume-style! style 0 0)])
            (cache-value-set! cache sheet x0 y0 range style-id)
-           (cache-address-set! cache range sheet x0 y0)
            (cache-cell-dimensions! range sheet style x0 y0)))
        ; Unions and cells: cache style mappings for diff styles:
        (for ([cf (in-list (range-conditional-formats range))])

@@ -22,29 +22,35 @@
 ; (hasheqof symbol (U natural #f))
 (define arity-lookup (make-hasheq))
 
-; symbol (U natural #f) [symbol] -> void
-(define (register-operator! scheme arity [excel (symbol->string scheme)])
+; (hasheqof symbol (U 'infix 'prefix 'postfix 'function))
+(define type-lookup (make-hasheq))
+
+; symbol (U natural #f) [(U 'infix 'prefix 'function)] [string] -> void
+(define (register-operator! scheme arity [type 'infix] [excel (symbol->string scheme)])
   (set! operator-names `(,@operator-names ,scheme))
   (hash-set! operator-lookup scheme excel)
+  (hash-set! type-lookup scheme type)
   (hash-set! arity-lookup scheme arity))
 
-(register-operator! '+ #f)
-(register-operator! '- #f)
-(register-operator! '* #f)
-(register-operator! '/ 2)
-(register-operator! '& #f)
-(register-operator! 'exp 2 "^")
-(register-operator! '= 2)
-(register-operator! '> 2)
-(register-operator! '< 2)
-(register-operator! '>= 2)
-(register-operator! '<= 2)
-(register-operator! '<> 2)
-(register-operator! '% 1)
-(register-operator! ': 2)
-(register-operator! '!range 2 ":")
-(register-operator! '!range-or #f ",")
-(register-operator! '!range-and #f " ")
+(register-operator! '+          #f)
+(register-operator! '-          #f)
+(register-operator! '*          #f)
+(register-operator! '/          2)
+(register-operator! '&          #f)
+(register-operator! 'exp        2  'infix    "^")
+;(register-operator! 'or         #f 'function)
+;(register-operator! 'and        #f 'function)
+;(register-operator! 'not        1  'function)
+(register-operator! '=          2)
+(register-operator! '>          2)
+(register-operator! '<          2)
+(register-operator! '>=         2)
+(register-operator! '<=         2)
+(register-operator! '<>         2)
+(register-operator! '%          1  'postfix)
+(register-operator! ':          2)
+(register-operator! '!range-or  #f 'infix    ",")
+(register-operator! '!range-and #f 'infix    " ")
 
 ; Predicates -------------------------------------
 
@@ -60,6 +66,10 @@
 (define (operator-arity op)
   (hash-ref arity-lookup op))
 
+; symbol -> (U 'infix 'prefix 'postfix 'function)
+(define (operator-type op)
+  (hash-ref type-lookup op))
+
 ; symbol (listof any) -> boolean
 (define (operator-arity-okay? op arity)
   (let ([op-arity (operator-arity op)])
@@ -71,5 +81,6 @@
  [operator-names       (listof symbol?)]
  [operator-name?       (-> symbol? boolean?)]
  [operator->string     (-> symbol? string?)]
- [operator-arity       (-> any/c (or/c natural-number/c #f))]
+ [operator-arity       (-> symbol? (or/c natural-number/c #f))]
+ [operator-type        (-> symbol? (or/c 'infix 'prefix 'postfix 'function))]
  [operator-arity-okay? (-> symbol? natural-number/c boolean?)])

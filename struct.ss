@@ -101,18 +101,6 @@
                                   hide-row?
                                   hide-column?))))
 
-; cell -> natural
-;
-; A prediction of the number of characters a cell will contain:
-(define (cell-value-length cell)
-  (match (cell-value cell)
-    [(? string?  str)  (add1 (string-length str))]
-    [(? symbol?  sym)  (add1 (string-length (symbol->string sym)))]
-    [(? bytes?   byt)  (add1 (bytes-length byt))]
-    [(? number?  num)  (add1 (string-length (number->string num)))]
-    [(? boolean? bool) 5] ; (string-length "false")
-    [(? formula? form) 6]))
-
 ; Formula and expression wrappers ----------------
 
 ; (U expression quotable) [boolean] -> formula
@@ -173,9 +161,9 @@
         [else           (raise-exn exn:fail:contract
                           (format "Expected (U boolean integer real string symbol), received ~s" val))]))
 
-; cell [boolean] [boolean] -> cell-reference
-(define (create-cell-reference cell [abs-x? #f] [abs-y? #f])
-  (make-cell-reference cell abs-x? abs-y?))
+; cell [boolean] [boolean] -> range-reference
+(define (create-range-reference cell [abs-x? #f] [abs-y? #f])
+  (make-range-reference cell abs-x? abs-y?))
 
 ; expression -> natural
 (define expression-function-nesting-depth
@@ -207,7 +195,12 @@
          #:error-message  [error-message  #f]
          #:prompt-title   [prompt-title   #f]
          #:prompt-message [prompt-message #f])
-  (make-validation-rule (quote-formula fx) error-style error-title error-message prompt-title prompt-message))
+  (make-validation-rule (quote-formula fx)
+                        error-style
+                        error-title
+                        error-message
+                        prompt-title
+                        prompt-message))
 
 ; Provide statements -----------------------------
 
@@ -220,57 +213,56 @@
                      make-operator
                      make-function
                      make-array
-                     make-cell-reference
+                     make-range-reference
                      make-literal)
          (all-from-out "struct-style.ss"))
 
 (provide/contract
- [rename create-workbook       make-workbook       (->* () (#:id symbol? (listof worksheet?)) workbook?)]
- [rename create-worksheet      make-worksheet      (->* (string? range?)
-                                                        (#:id symbol?
-                                                              #:auto-filter-lock?             boolean?
-                                                              #:delete-columns-lock?          boolean?
-                                                              #:delete-rows-lock?             boolean?
-                                                              #:format-cells-lock?            boolean?
-                                                              #:format-columns-lock?          boolean?
-                                                              #:format-rows-lock?             boolean?
-                                                              #:insert-columns-lock?          boolean?
-                                                              #:insert-hyperlinks-lock?       boolean?
-                                                              #:insert-rows-lock?             boolean?
-                                                              #:objects-lock?                 boolean?
-                                                              #:pivot-tables-lock?            boolean?
-                                                              #:scenarios-lock?               boolean?
-                                                              #:locked-cell-selection-lock?   boolean?
-                                                              #:unlocked-cell-selection-lock? boolean?
-                                                              #:sheet-lock?                   boolean?
-                                                              #:sort-lock?                    boolean?)
-                                                        worksheet?)]
- [rename create-union          make-union          (->* ((listof part?) natural-number/c natural-number/c)
-                                                        (style? #:validate (or/c validation-rule? #f) #:cf (listof conditional-format?))
-                                                        union?)]
- [rename create-cell           make-cell           (->* (quotable?)
-                                                        (style? #:validate     (or/c validation-rule? #f)
-                                                                #:cf           (listof conditional-format?)
-                                                                #:min-width    (or/c (and/c number? (>=/c 0)) #f)
-                                                                #:max-width    (or/c (and/c number? (>=/c 0)) #f)
-                                                                #:min-height   (or/c (and/c number? (>=/c 0)) #f)
-                                                                #:max-height   (or/c (and/c number? (>=/c 0)) #f)
-                                                                #:hide-row?    boolean?
-                                                                #:hide-column? boolean?)
-                                                        cell?)]
- [cell-value-length                                (-> cell? natural-number/c)]
- [rename create-formula        make-formula        (->* (quotable?) (boolean?) formula?)]
- [rename create-operator       make-operator       (->* (symbol?) () #:rest (listof quotable?) operator?)]
- [rename create-function       make-function       (->* (symbol?) () #:rest (listof quotable?) function?)]
- [optimize-commutative-function                    (->* (symbol?) () #:rest (listof quotable?) function?)]
- [rename create-array          make-array          (->* () () #:rest (listof quotable?) array?)]
- [rename create-literal        make-literal        (-> literal-value? literal?)]
- [rename create-cell-reference make-cell-reference (->* (cell?) (boolean? boolean?) cell-reference?)]
- [expression-function-nesting-depth                (-> expression? natural-number/c)]
- [validate                                         (->* (quotable?)
-                                                        (#:error-style (or/c 'stop 'warning 'information)
-                                                                       #:error-title    (or/c string? #f)
-                                                                       #:error-message  (or/c string? #f)
-                                                                       #:prompt-title   (or/c string? #f)
-                                                                       #:prompt-message (or/c string? #f))
-                                                        validation-rule?)])
+ [rename create-workbook       make-workbook         (->* () (#:id symbol? (listof worksheet?)) workbook?)]
+ [rename create-worksheet      make-worksheet        (->* (string? range?)
+                                                          (#:id symbol?
+                                                                #:auto-filter-lock?             boolean?
+                                                                #:delete-columns-lock?          boolean?
+                                                                #:delete-rows-lock?             boolean?
+                                                                #:format-cells-lock?            boolean?
+                                                                #:format-columns-lock?          boolean?
+                                                                #:format-rows-lock?             boolean?
+                                                                #:insert-columns-lock?          boolean?
+                                                                #:insert-hyperlinks-lock?       boolean?
+                                                                #:insert-rows-lock?             boolean?
+                                                                #:objects-lock?                 boolean?
+                                                                #:pivot-tables-lock?            boolean?
+                                                                #:scenarios-lock?               boolean?
+                                                                #:locked-cell-selection-lock?   boolean?
+                                                                #:unlocked-cell-selection-lock? boolean?
+                                                                #:sheet-lock?                   boolean?
+                                                                #:sort-lock?                    boolean?)
+                                                          worksheet?)]
+ [rename create-union          make-union            (->* ((listof part?) natural-number/c natural-number/c)
+                                                          (style? #:validate (or/c validation-rule? #f) #:cf (listof conditional-format?))
+                                                          union?)]
+ [rename create-cell           make-cell             (->* (quotable?)
+                                                          (style? #:validate     (or/c validation-rule? #f)
+                                                                  #:cf           (listof conditional-format?)
+                                                                  #:min-width    (or/c (and/c number? (>=/c 0)) #f)
+                                                                  #:max-width    (or/c (and/c number? (>=/c 0)) #f)
+                                                                  #:min-height   (or/c (and/c number? (>=/c 0)) #f)
+                                                                  #:max-height   (or/c (and/c number? (>=/c 0)) #f)
+                                                                  #:hide-row?    boolean?
+                                                                  #:hide-column? boolean?)
+                                                          cell?)]
+ [rename create-formula        make-formula          (->* (quotable?) (boolean?) formula?)]
+ [rename create-operator       make-operator         (->* (symbol?) () #:rest (listof quotable?) operator?)]
+ [rename create-function       make-function         (->* (symbol?) () #:rest (listof quotable?) function?)]
+ [optimize-commutative-function                      (->* (symbol?) () #:rest (listof quotable?) function?)]
+ [rename create-array          make-array            (->* () () #:rest (listof quotable?) array?)]
+ [rename create-literal        make-literal          (-> literal-value? literal?)]
+ [rename create-range-reference make-range-reference (->* (range?) (boolean? boolean?) range-reference?)]
+ [expression-function-nesting-depth                  (-> expression? natural-number/c)]
+ [validate                                           (->* (quotable?)
+                                                          (#:error-style (or/c 'stop 'warning 'information)
+                                                                         #:error-title    (or/c string? #f)
+                                                                         #:error-message  (or/c string? #f)
+                                                                         #:prompt-title   (or/c string? #f)
+                                                                         #:prompt-message (or/c string? #f))
+                                                          validation-rule?)])
