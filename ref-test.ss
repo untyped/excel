@@ -6,6 +6,10 @@
          "ref.ss"
          "struct.ss")
 
+(require/expose "ref.ss"
+  (escape-worksheet-name
+   unescape-worksheet-name))
+
 (define ref-tests
   (test-suite "ref.ss"
     
@@ -41,9 +45,13 @@
     (test-case "sheet+xy->ref"
       (check-equal? (sheet+xy->ref #f 0 0) "A1")
       (check-equal? (sheet+xy->ref (make-worksheet "Sheet1" (make-cell 123)) 0 0)
-                    "Sheet1!A1")
+                    "'Sheet1'!A1")
       (check-equal? (sheet+xy->ref (make-worksheet "Sheet1" (make-cell 123)) 26 26 #t #f)
-                    "Sheet1!$AA27"))
+                    "'Sheet1'!$AA27")
+      (check-equal? (sheet+xy->ref (make-worksheet "She'et1" (make-cell 123)) 26 26 #t #f)
+                    "'She''et1'!$AA27")
+      (check-equal? (sheet+xy->ref (make-worksheet "'Sheet1'" (make-cell 123)) 26 26 #t #f)
+                    "'''Sheet1'''!$AA27"))
     
     (test-case "ref->xy"
       (check-equal? (call-with-values (cut ref->xy "A2") list) (list 0 1))
@@ -56,13 +64,23 @@
       (check-equal? (call-with-values (cut ref->sheet+xy "a2") list) (list #f 0 1))
       (check-equal? (call-with-values (cut ref->sheet+xy "$A$2") list) (list #f 0 1))
       (check-equal? (call-with-values (cut ref->sheet+xy "Sheet1!$A$2") list)
-                    (list "Sheet1" 0 1)))
-    
+                    (list "Sheet1" 0 1))
+      (check-equal? (call-with-values (cut ref->sheet+xy "'Sheet1'!$A$2") list)
+                    (list "Sheet1" 0 1))
+      (check-equal? (call-with-values (cut ref->sheet+xy "'She''et1'!$A$2") list)
+                    (list "She'et1" 0 1))
+      (check-equal? (call-with-values (cut ref->sheet+xy "'''Sheet1'''!$A$2") list)
+                    (list "'Sheet1'" 0 1)))
     
     (test-case "range-address"
       (check-equal? (range-address (make-cell 123) 2 1) "C2")
       (check-equal? (range-address (hc-append (make-cell 123) (make-cell 123)) 2 1) "C2:D2")
-      (check-equal? (range-address (vc-append (make-cell 123) (make-cell 123)) 2 1) "C2:C3"))))
+      (check-equal? (range-address (vc-append (make-cell 123) (make-cell 123)) 2 1) "C2:C3"))
+    
+    (test-case "escape-worksheet-name"
+      (check-equal? (escape-worksheet-name "sheet") "'sheet'")
+      (check-equal? (escape-worksheet-name "she'et") "'she''et'")
+      (check-equal? (escape-worksheet-name "'sheet'") "'''sheet'''"))))
 
 ; Provide statements -----------------------------
 

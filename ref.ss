@@ -18,7 +18,7 @@
 ; (U worksheet #f) natural natural [boolean] [boolean] -> string
 (define (sheet+xy->ref sheet x y [absolute-x? #f] [absolute-y? #f])
   (if sheet
-      (format "~a!~a" (worksheet-name sheet) (xy->ref x y absolute-x? absolute-y?))
+      (format "~a!~a" (escape-worksheet-name (worksheet-name sheet)) (xy->ref x y absolute-x? absolute-y?))
       (xy->ref x y absolute-x? absolute-y?)))
 
 ; string -> natural natural
@@ -30,7 +30,7 @@
 (define (ref->sheet+xy ref)
   (match (regexp-match #rx"^(\\[?([^\\]*)\\]?!)?\\$?([a-zA-Z][a-zA-Z]*)[$]?([0-9][0-9]*)$" ref)
     [(list _ _ sheet col row)
-     (values sheet (col->x col) (row->y row))]))
+     (values (and sheet (unescape-worksheet-name sheet)) (col->x col) (row->y row))]))
 
 ; natural -> string
 ; string -> natural
@@ -95,6 +95,18 @@
   (string-join (for/list ([spec (in-list specs)])
                  (apply range-address spec))
                " "))
+
+; Helpers ----------------------------------------
+
+; string -> string
+(define (escape-worksheet-name name)
+  (format "'~a'" (regexp-replace* #rx"'" name "''")))
+
+; string -> string
+(define (unescape-worksheet-name name)
+  (match (regexp-match #rx"^'(.*)'$" name)
+    [(list _ name) (regexp-replace* #rx"''" name "'")]
+    [_             (regexp-replace* #rx"''" name "'")]))
 
 ; Provide statements -----------------------------
 
