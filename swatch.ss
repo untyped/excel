@@ -175,12 +175,19 @@
                                                                (hc-append "Warning" (make-cell 100 empty-style #:validate (custom-validate 'warning)))
                                                                (hc-append "Info"    (make-cell 100 empty-style #:validate (custom-validate 'information))))))))))))
 
+(define split-sheet
+  (make-worksheet
+   "Split"
+   (make-matrix 10 10)
+   #:split (make-split (cons 3 3) (cons 5 5) #t)))
+
 ; Workbook ---------------------------------------
 
 (write-workbook (make-workbook (list fill-sheet 
                                      border-sheet
                                      alignment-sheet
                                      compound-sheet
-                                     conditional-format-sheet))
+                                     conditional-format-sheet
+                                     split-sheet))
                 (build-path (current-directory) "swatch.xlsx")
                 #:exists 'replace)

@@ -13,10 +13,13 @@
   (xml ,standalone-header-xml
        (worksheet (@ [xmlns   ,spreadsheetml-namespace]
                      [xmlns:r ,workbook-namespace])
+                  ,(sheet-views-xml cache sheet)
                   ,(cols-xml cache sheet)
                   ,(sheet-data-xml cache sheet)
                   ,(sheet-protection-xml cache sheet)
-                  ,(cf+validation-xml cache sheet))))
+                  ,(auto-filter-xml cache sheet)
+                  ,(cf+validation-xml cache sheet)
+                  ,(print-settings-xml cache sheet))))
 
 ; cache worksheet -> xml
 (define (cols-xml cache sheet)
@@ -32,9 +35,34 @@
                                                           ,(opt-xml-attr width))))
                                              accum)
                                        accum))))])
-  (if (null? cols)
-      (xml)
-      (xml (cols ,@cols)))))
+    (if (null? cols)
+        (xml)
+        (xml (cols ,@cols)))))
+
+; cache worksheet -> xml
+(define (sheet-views-xml cache sheet)
+  (let ([split (worksheet-split sheet)])
+    (opt-xml split
+      ,(let*-values ([(split-x split-y) (if (range? (split-position split))
+                                            (call-with-values (cut cache-address-ref cache (split-position split))
+                                                              (lambda (sheet x y)
+                                                                (values x y)))
+                                            (values (car (split-position split))
+                                                    (cdr (split-position split))))]
+                     [(scroll-pos)      (if (range? (split-scroll-position split))
+                                            (call-with-values (cut cache-address-ref cache (split-position split))
+                                                              (lambda (sheet x y)
+                                                                (xy->ref x y)))
+                                            (xy->ref (car (split-position split))
+                                                     (cdr (split-position split))))]
+                     [(frozen?)         (split-frozen? split)])
+         ; The workbookViewId attribute is required but we don't actually need to set up a view in workbook.xml. 
+         (xml (sheetViews (sheetView (@ [workbookViewId 0])
+                                     (pane (@ [xSplit      ,split-x]
+                                              [ySplit      ,split-y]
+                                              [topLeftCell ,scroll-pos]
+                                              [activePane  "bottomRight"]
+                                              [state       ,(if frozen? "frozenSplit" "split")])))))))))
 
 ; cache worksheet -> xml
 (define (sheet-data-xml cache sheet)
@@ -86,6 +114,19 @@
                            [sort                ,(if (worksheet-sort-lock?                    sheet) "true" "false")]))))
 
 ; cache worksheet -> xml
+(define (auto-filter-xml cache sheet)
+  (let ([filter (worksheet-auto-filter sheet)])
+    (opt-xml filter
+      ,(let ([x (auto-filter-x      filter)]
+             [y (auto-filter-y      filter)]
+             [w (auto-filter-width  filter)]
+             [h (auto-filter-height filter)])
+         (xml (autoFilter (@ [ref ,(format "~a:~a"
+                                           (xy->ref x y)
+                                           (xy->ref (sub1 (+ x w))
+                                                    (sub1 (+ y h))))])))))))
+
+; cache worksheet -> xml
 (define (cf+validation-xml cache sheet)
   ; (box (listof xml))
   (define cf-accum         (box null))
@@ -111,6 +152,21 @@
        ,(opt-xml (pair? (unbox validation-accum))
           (dataValidations (@ [count ,(length (unbox validation-accum))])
                            ,@(reverse (unbox validation-accum))))))
+
+; cache worksheet -> xml
+(define (print-settings-xml cache sheet)
+  (let ([settings (worksheet-print-settings sheet)])
+    (opt-xml settings
+      ,(match settings
+         [(struct print-settings (fitToWidth fitToHeight orientation headers footers))
+          (xml (pageSetup (@ [paperSize 0] ; A4
+                             ,(opt-xml-attr fitToWidth)
+                             ,(opt-xml-attr fitToHeight)
+                             ,(opt-xml-attr orientation)
+                             [horizontalDpi 4294967292]   ; 2^32 - 4 ; goodness knows why
+                             [verticalDpi   4294967292])) ; 2^32 - 4 ; goodness knows why
+               (headerFooter (oddHeader ,headers)
+                             (oddFooter ,footers)))]))))
 
 ; cache worksheet range natural natural -> xml
 (define (conditional-format-xml cache sheet range x0 y0)

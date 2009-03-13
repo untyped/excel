@@ -7,8 +7,8 @@
 
 ; Procedures -------------------------------------
 
-; (U range quotable) ... [#:style style] -> union
-(define (hc-append #:style [style empty-style] . ranges)
+; (U range quotable) ... [#:style style] [#:cf (listof conditional-format)] -> union
+(define (hc-append #:style [style empty-style] #:cf [cf null] . ranges)
   (let* ([ranges         (flatten-ranges ranges)]
          [overall-width  (apply + (map range-width ranges))]
          [overall-height (apply max (map range-height ranges))])
@@ -19,10 +19,11 @@
                          (lambda (range x y) 0))
                 overall-width
                 overall-height
-                style)))
+                style
+                #:cf cf)))
 
-; (U range quotable) ... [#:style style] -> union
-(define (ht-append #:style [style empty-style] . ranges)
+; (U range quotable) ... [#:style style] [#:cf (listof conditional-format)] -> union
+(define (ht-append #:style [style empty-style] #:cf [cf null] . ranges)
   (let* ([ranges         (flatten-ranges ranges)]
          [overall-width  (apply + (map range-width ranges))]
          [overall-height (apply max (map range-height ranges))])
@@ -33,10 +34,11 @@
                          (lambda (range x y) 0))
                 overall-width
                 overall-height
-                style)))
+                style
+                #:cf cf)))
 
-; (U range quotable) ... [#:style style] -> union
-(define (hb-append #:style [style empty-style] . ranges)
+; (U range quotable) ... [#:style style] [#:cf (listof conditional-format)] -> union
+(define (hb-append #:style [style empty-style] #:cf [cf null] . ranges)
   (let* ([ranges         (flatten-ranges ranges)]
          [overall-width  (apply + (map range-width ranges))]
          [overall-height (apply max (map range-height ranges))])
@@ -47,10 +49,11 @@
                          (lambda (range x y) 0))
                 overall-width
                 overall-height
-                style)))
+                style
+                #:cf cf)))
 
-; (U range quotable) ... [#:style style] -> union
-(define (vc-append #:style [style empty-style] . ranges)
+; (U range quotable) ... [#:style style] [#:cf (listof conditional-format)] -> union
+(define (vc-append #:style [style empty-style] #:cf [cf null] . ranges)
   (let* ([ranges         (flatten-ranges ranges)]
          [overall-width  (apply max (map range-width ranges))]
          [overall-height (apply + (map range-height ranges))])
@@ -61,10 +64,11 @@
                          (lambda (range x y) (range-height range)))
                 overall-width
                 overall-height
-                style)))
+                style
+                #:cf cf)))
 
-; (U range quotable) ... [#:style style] -> union
-(define (vl-append #:style [style empty-style] . ranges)
+; (U range quotable) ... [#:style style] [#:cf (listof conditional-format)] -> union
+(define (vl-append #:style [style empty-style] #:cf [cf null] . ranges)
   (let* ([ranges         (flatten-ranges ranges)]
          [overall-width  (apply max (map range-width ranges))]
          [overall-height (apply + (map range-height ranges))])
@@ -75,10 +79,11 @@
                          (lambda (range x y) (range-height range)))
                 overall-width
                 overall-height
-                style)))
+                style
+                #:cf cf)))
 
-; (U range quotable) ... [#:style style] -> union
-(define (vr-append #:style [style empty-style] . ranges)
+; (U range quotable) ... [#:style style] [#:cf (listof conditional-format)] -> union
+(define (vr-append #:style [style empty-style] #:cf [cf null] . ranges)
   (let* ([ranges         (flatten-ranges ranges)]
          [overall-width  (apply max (map range-width ranges))]
          [overall-height (apply + (map range-height ranges))])
@@ -89,38 +94,43 @@
                          (lambda (range x y) (range-height range)))
                 overall-width
                 overall-height
-                style)))
+                style
+                #:cf cf)))
 
-; (U range quotable) [natural] [#:style style] -> range
-(define (l-pad range [num 1] #:style [style empty-style])
+; (U range quotable) [natural] [#:style style] [#:cf (listof conditional-format)] -> range
+(define (l-pad range [num 1] #:style [style empty-style] #:cf [cf null])
   (let ([range (quote-range range)])
     (make-union (list (make-part range num 0))
                 (+ (range-width range) num)
-                (range-height range))))
+                (range-height range)
+                #:cf cf)))
 
-; (U range quotable) [natural] [#:style style] -> range
-(define (r-pad range [num 1] #:style [style empty-style])
+; (U range quotable) [natural] [#:style style] [#:cf (listof conditional-format)] -> range
+(define (r-pad range [num 1] #:style [style empty-style] #:cf [cf null])
   (let ([range (quote-range range)])
     (make-union (list (make-part range 0 0))
                 (+ (range-width range) num)
                 (range-height range)
-                style)))
+                style
+                #:cf cf)))
 
-; (U range quotable) [natural] [#:style style] -> range
-(define (t-pad range [num 1] #:style [style empty-style])
+; (U range quotable) [natural] [#:style style] [#:cf (listof conditional-format)] -> range
+(define (t-pad range [num 1] #:style [style empty-style] #:cf [cf null])
   (let ([range (quote-range range)])
     (make-union (list (make-part range 0 num))
                 (range-width range)
                 (+ (range-height range) num)
-                style)))
+                style
+                #:cf cf)))
 
-; (U range quotable) [natural] [#:style style] -> range
-(define (b-pad range [num 1] #:style [style empty-style])
+; (U range quotable) [natural] [#:style style] [#:cf (listof conditional-format)] -> range
+(define (b-pad range [num 1] #:style [style empty-style] #:cf [cf null])
   (let ([range (quote-range range)])
     (make-union (list (make-part range 0 0))
                 (range-width range)
                 (+ (range-height range) num)
-                style)))
+                style
+                #:cf cf)))
 
 ; range style -> range
 (define (style-range range style)
@@ -247,16 +257,16 @@
       (and (pair? item) (andmap treeof-range+quotable? item))))
 
 (provide/contract
- [hc-append     (->* () (#:style style?) #:rest treeof-range+quotable? union?)]
- [ht-append     (->* () (#:style style?) #:rest treeof-range+quotable? union?)]
- [hb-append     (->* () (#:style style?) #:rest treeof-range+quotable? union?)]
- [vc-append     (->* () (#:style style?) #:rest treeof-range+quotable? union?)]
- [vl-append     (->* () (#:style style?) #:rest treeof-range+quotable? union?)]
- [vr-append     (->* () (#:style style?) #:rest treeof-range+quotable? union?)]
- [l-pad         (->* (range+quotable?) (natural-number/c #:style style?) range?)]
- [r-pad         (->* (range+quotable?) (natural-number/c #:style style?) range?)]
- [t-pad         (->* (range+quotable?) (natural-number/c #:style style?) range?)]
- [b-pad         (->* (range+quotable?) (natural-number/c #:style style?) range?)]
+ [hc-append     (->* () (#:style style? #:cf (listof conditional-format?)) #:rest treeof-range+quotable? union?)]
+ [ht-append     (->* () (#:style style? #:cf (listof conditional-format?)) #:rest treeof-range+quotable? union?)]
+ [hb-append     (->* () (#:style style? #:cf (listof conditional-format?)) #:rest treeof-range+quotable? union?)]
+ [vc-append     (->* () (#:style style? #:cf (listof conditional-format?)) #:rest treeof-range+quotable? union?)]
+ [vl-append     (->* () (#:style style? #:cf (listof conditional-format?)) #:rest treeof-range+quotable? union?)]
+ [vr-append     (->* () (#:style style? #:cf (listof conditional-format?)) #:rest treeof-range+quotable? union?)]
+ [l-pad         (->* (range+quotable?) (natural-number/c #:style style? #:cf (listof conditional-format?)) range?)]
+ [r-pad         (->* (range+quotable?) (natural-number/c #:style style? #:cf (listof conditional-format?)) range?)]
+ [t-pad         (->* (range+quotable?) (natural-number/c #:style style? #:cf (listof conditional-format?)) range?)]
+ [b-pad         (->* (range+quotable?) (natural-number/c #:style style? #:cf (listof conditional-format?)) range?)]
  [style-range   (-> range? style? range?)]
  [outline-range (->* (range?) (border-style? color?) range?)]
  [stripe-rows   (->* (range?) (natural-number/c color? color?) range?)]

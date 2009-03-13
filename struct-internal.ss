@@ -16,10 +16,20 @@
 ; (struct symbol (listof worksheet))
 (define-struct (workbook package-part) (sheets) #:transparent)
 
-; (struct symbol (U string #f) range)
+; (struct symbol
+;         (U string #f) 
+;         range
+;         (U split #f)
+;         (U auto-filter #f)
+;         (U print-settings #f)
+;         boolean
+;         ...)
 (define-struct (worksheet package-part)
   (name
    data
+   split
+   auto-filter
+   print-settings
    auto-filter-lock?
    delete-columns-lock?
    delete-rows-lock?
@@ -36,6 +46,23 @@
    unlocked-cell-selection-lock?
    sheet-lock?
    sort-lock?)
+  #:transparent)
+
+; (struct (U range (cons natural natural))
+;         (U range (cons natural natural) #f)
+;         boolean)
+(define-struct split (position scroll-position frozen?) #:transparent)
+
+; (struct natural natural natural natural)
+(define-struct auto-filter (x y width height) #:transparent)
+
+; (struct (U natural #f)
+;         (U natural #f)
+;         (U 'portrait 'landscape)
+;         (U string #f)
+;         (U string #f))
+(define-struct print-settings
+  (fit-to-width fit-to-height orientation headers footers)
   #:transparent)
 
 ; (struct style (U validation-rule #f) (listof conditional-format))
@@ -174,6 +201,9 @@
  [struct (worksheet package-part)     ([id                            symbol?]
                                        [name                          (string-length/c 31)]
                                        [data                          range?]
+                                       [split                         (or/c split? #f)]
+                                       [auto-filter                   (or/c auto-filter? #f)]
+                                       [print-settings                (or/c print-settings? #f)]
                                        [auto-filter-lock?             boolean?]
                                        [delete-columns-lock?          boolean?]
                                        [delete-rows-lock?             boolean?]
@@ -190,6 +220,18 @@
                                        [unlocked-cell-selection-lock? boolean?]
                                        [sheet-lock?                   boolean?]
                                        [sort-lock?                    boolean?])]
+ [struct split                        ([position                      (or/c range? (cons/c natural-number/c natural-number/c))]
+                                       [scroll-position               (or/c range? (cons/c natural-number/c natural-number/c))]
+                                       [frozen?                       boolean?])]
+ [struct auto-filter                  ([x                             natural-number/c]
+                                       [y                             natural-number/c]
+                                       [width                         natural-number/c]
+                                       [height                        natural-number/c])]
+ [struct print-settings               ([fit-to-width                  (or/c (and/c integer? (>=/c 1)) #f)]
+                                       [fit-to-height                 (or/c (and/c integer? (>=/c 1)) #f)]
+                                       [orientation                   (or/c 'portrait 'landscape)]
+                                       [headers                       (or/c string? #f)]
+                                       [footers                       (or/c string? #f)])]
  [struct (range data)                 ([style                         style?]
                                        [validation-rule               (or/c validation-rule? #f)]
                                        [conditional-formats           (listof conditional-format?)])]

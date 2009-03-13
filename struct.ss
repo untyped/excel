@@ -18,7 +18,10 @@
 ;  [#:id symbol] 
 ;  string 
 ;  range
-;  [#:protect? boolean]
+;  [#:split             (U split #f)]
+;  [#:auto-filter       (U auto-filter #f)]
+;  [#:print-settings    (U print-settings #f)]
+;  [#:protect?          boolean]
 ;  [#:auto-filter-lock? boolean]
 ;  ...
 ; ->
@@ -26,6 +29,9 @@
 (define (create-worksheet #:id [id (gensym/interned 'sheet)]
                           name
                           data
+                          #:split                         [split                         #f]
+                          #:auto-filter                   [auto-filter                   #f]
+                          #:print-settings                [print-settings                #f]
                           #:auto-filter-lock?             [auto-filter-lock?             #f]
                           #:delete-columns-lock?          [delete-columns-lock?          #f]
                           #:delete-rows-lock?             [delete-rows-lock?             #f]
@@ -45,6 +51,9 @@
   (make-worksheet id 
                   name
                   data
+                  split
+                  auto-filter
+                  print-settings
                   auto-filter-lock?
                   delete-columns-lock?
                   delete-rows-lock?
@@ -61,6 +70,26 @@
                   unlocked-cell-selection-lock?
                   sheet-lock?
                   sort-lock?))
+
+;  [#:fit-to-width  (U natural>=1 #f)]
+;  [#:fit-to-height (U natural>=1 #f)]
+;  [#:orientation   (U 'portrait 'landscape)]
+;  [#:headers       (U string #f)]
+;  [#:footers       (U string #f)]
+; ->
+;  print-settings
+(define (create-print-settings
+         #:fit-to-width  [fit-to-width  #f]
+         #:fit-to-height [fit-to-height #f]
+         #:orientation   [orientation   'portrait]
+         #:headers       [headers       #f]
+         #:footers       [footers       #f])
+  (make-print-settings
+   fit-to-width
+   fit-to-height
+   orientation
+   headers
+   footers))
 
 ; Range wrappers ---------------------------------
 
@@ -207,6 +236,7 @@
 (provide (except-out (all-from-out "struct-internal.ss")
                      make-workbook
                      make-worksheet
+                     make-print-settings
                      make-union
                      make-cell
                      make-formula
@@ -221,6 +251,9 @@
  [rename create-workbook       make-workbook         (->* () (#:id symbol? (listof worksheet?)) workbook?)]
  [rename create-worksheet      make-worksheet        (->* (string? range?)
                                                           (#:id symbol?
+                                                                #:split                         (or/c split? #f)
+                                                                #:auto-filter                   (or/c auto-filter? #f)
+                                                                #:print-settings                (or/c print-settings? #f)
                                                                 #:auto-filter-lock?             boolean?
                                                                 #:delete-columns-lock?          boolean?
                                                                 #:delete-rows-lock?             boolean?
@@ -238,6 +271,13 @@
                                                                 #:sheet-lock?                   boolean?
                                                                 #:sort-lock?                    boolean?)
                                                           worksheet?)]
+ [rename create-print-settings make-print-settings   (->* ()
+                                                          (#:fit-to-width (or/c (and/c integer? (>=/c 1)) #f)
+                                                                          #:fit-to-height (or/c (and/c integer? (>=/c 1)) #f)
+                                                                          #:orientation   (or/c 'portrait 'landscape)
+                                                                          #:headers       (or/c string? #f)
+                                                                          #:footers       (or/c string? #f))
+                                                          print-settings?)]
  [rename create-union          make-union            (->* ((listof part?) natural-number/c natural-number/c)
                                                           (style? #:validate (or/c validation-rule? #f) #:cf (listof conditional-format?))
                                                           union?)]

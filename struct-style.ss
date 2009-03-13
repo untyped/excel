@@ -82,31 +82,34 @@
 
 ; font -> boolean
 (define (empty-font? font)
-  (and (not (font-name font))
-       (not (font-size font))
-       (not (font-color font))
-       (void? (font-bold-raw font))
-       (void? (font-italic-raw font))
-       (void? (font-underline-raw font))
-       (void? (font-outline-raw font))
-       (void? (font-shadow-raw font))
-       (void? (font-strike-raw font))
-       (void? (font-superscript-raw font))
-       (void? (font-subscript-raw font))))
+  (or (eq? font empty-font)
+      (and (not (font-name font))
+           (not (font-size font))
+           (not (font-color font))
+           (void? (font-bold-raw font))
+           (void? (font-italic-raw font))
+           (void? (font-underline-raw font))
+           (void? (font-outline-raw font))
+           (void? (font-shadow-raw font))
+           (void? (font-strike-raw font))
+           (void? (font-superscript-raw font))
+           (void? (font-subscript-raw font)))))
 
 ; font font -> font
 (define (compose-fonts font1 font2)
-  (make-font (compose-normal  font-name            font1 font2)
-             (compose-normal  font-size            font1 font2)
-             (compose-normal  font-color           font1 font2)
-             (compose-boolean font-bold-raw        font1 font2)
-             (compose-boolean font-italic-raw      font1 font2)
-             (compose-boolean font-underline-raw   font1 font2)
-             (compose-boolean font-outline-raw     font1 font2)
-             (compose-boolean font-shadow-raw      font1 font2)
-             (compose-boolean font-strike-raw      font1 font2)
-             (compose-boolean font-superscript-raw font1 font2)
-             (compose-boolean font-subscript-raw   font1 font2)))
+  (cond [(eq? font1 empty-font) font2]
+        [(eq? font2 empty-font) font1]
+        [else (make-font (compose-normal  font-name            font1 font2)
+                         (compose-normal  font-size            font1 font2)
+                         (compose-normal  font-color           font1 font2)
+                         (compose-boolean font-bold-raw        font1 font2)
+                         (compose-boolean font-italic-raw      font1 font2)
+                         (compose-boolean font-underline-raw   font1 font2)
+                         (compose-boolean font-outline-raw     font1 font2)
+                         (compose-boolean font-shadow-raw      font1 font2)
+                         (compose-boolean font-strike-raw      font1 font2)
+                         (compose-boolean font-superscript-raw font1 font2)
+                         (compose-boolean font-subscript-raw   font1 font2))]))
 
 ; font
 (define empty-font (create-font))
@@ -133,6 +136,8 @@
 
 ; fill
 (define empty-fill (make-empty-fill))
+
+; fill
 (define gray-125-fill
   (make-pattern-fill (make-rgba-color 0 0 0 1)
                      (make-rgba-color 1 1 1 1)
@@ -173,29 +178,32 @@
 
 ; border -> boolean
 (define (empty-border? border)
-  (and (not   (border-top               border))
-       (not   (border-right             border))
-       (not   (border-bottom            border))
-       (not   (border-left              border))
-       (not   (border-horizontal        border))
-       (not   (border-vertical          border))
-       (not   (border-diagonal          border))
-       (void? (border-outline-raw       border))
-       (void? (border-diagonal-down-raw border))
-       (void? (border-diagonal-up-raw   border))))
+  (or (eq? border empty-border)
+      (and (not   (border-top               border))
+           (not   (border-right             border))
+           (not   (border-bottom            border))
+           (not   (border-left              border))
+           (not   (border-horizontal        border))
+           (not   (border-vertical          border))
+           (not   (border-diagonal          border))
+           (void? (border-outline-raw       border))
+           (void? (border-diagonal-down-raw border))
+           (void? (border-diagonal-up-raw   border)))))
 
 ; border border -> border
 (define (compose-borders border1 border2)
-  (make-border (compose-line    border-top               border1 border2)
-               (compose-line    border-right             border1 border2)
-               (compose-line    border-bottom            border1 border2)
-               (compose-line    border-left              border1 border2)
-               (compose-line    border-horizontal        border1 border2)
-               (compose-line    border-vertical          border1 border2)
-               (compose-line    border-diagonal          border1 border2)
-               (compose-boolean border-outline-raw       border1 border2)
-               (compose-boolean border-diagonal-down-raw border1 border2)
-               (compose-boolean border-diagonal-up-raw   border1 border2)))
+  (cond [(eq? border1 empty-border) border2]
+        [(eq? border2 empty-border) border1]
+        [else (make-border (compose-line    border-top               border1 border2)
+                           (compose-line    border-right             border1 border2)
+                           (compose-line    border-bottom            border1 border2)
+                           (compose-line    border-left              border1 border2)
+                           (compose-line    border-horizontal        border1 border2)
+                           (compose-line    border-vertical          border1 border2)
+                           (compose-line    border-diagonal          border1 border2)
+                           (compose-boolean border-outline-raw       border1 border2)
+                           (compose-boolean border-diagonal-down-raw border1 border2)
+                           (compose-boolean border-diagonal-up-raw   border1 border2))]))
 
 ; (border -> (U line #f)) border border -> (U line #f)
 (define (compose-line accessor border1 border2)
@@ -256,27 +264,30 @@
 
 ; alignment -> boolean
 (define (empty-alignment? align)
-  (and (not (alignment-horizontal align))
-       (not (alignment-vertical align))
-       (void? (alignment-wrap-raw align))
-       (void? (alignment-shrink-raw align))
-       (not (alignment-rotation align))
-       (not (alignment-reading-order align))
-       (void? (alignment-justify-last-line-raw align))
-       (not (alignment-indent align))
-       (not (alignment-relative-indent align))))
+  (or (eq? align empty-alignment)
+      (and (not (alignment-horizontal align))
+           (not (alignment-vertical align))
+           (void? (alignment-wrap-raw align))
+           (void? (alignment-shrink-raw align))
+           (not (alignment-rotation align))
+           (not (alignment-reading-order align))
+           (void? (alignment-justify-last-line-raw align))
+           (not (alignment-indent align))
+           (not (alignment-relative-indent align)))))
 
 ; alignment alignment -> alignment
 (define (compose-alignments align1 align2)
-  (make-alignment (compose-normal  alignment-horizontal            align1 align2)
-                  (compose-normal  alignment-vertical              align1 align2)
-                  (compose-boolean alignment-wrap-raw              align1 align2)
-                  (compose-boolean alignment-shrink-raw            align1 align2)
-                  (compose-normal  alignment-rotation              align1 align2)
-                  (compose-normal  alignment-reading-order         align1 align2)
-                  (compose-boolean alignment-justify-last-line-raw align1 align2)
-                  (compose-normal  alignment-indent                align1 align2)
-                  (compose-normal  alignment-relative-indent       align1 align2)))
+  (cond [(eq? align1 empty-alignment) align2]
+        [(eq? align2 empty-alignment) align1]
+        [else (make-alignment (compose-normal  alignment-horizontal            align1 align2)
+                              (compose-normal  alignment-vertical              align1 align2)
+                              (compose-boolean alignment-wrap-raw              align1 align2)
+                              (compose-boolean alignment-shrink-raw            align1 align2)
+                              (compose-normal  alignment-rotation              align1 align2)
+                              (compose-normal  alignment-reading-order         align1 align2)
+                              (compose-boolean alignment-justify-last-line-raw align1 align2)
+                              (compose-normal  alignment-indent                align1 align2)
+                              (compose-normal  alignment-relative-indent       align1 align2))]))
 
 ; alignment
 (define empty-alignment (create-alignment))
@@ -335,25 +346,27 @@
 
 ; style style -> style
 (define (compose-styles style1 style2)
-  (if (and (compiled-style? style1)
-           (compiled-style? style2))
-      (make-compiled-style
-       (compose-number-formats (compiled-style-number-format style1)
-                               (compiled-style-number-format style2))
-       (compose-fonts          (compiled-style-font          style1)
-                               (compiled-style-font          style2))
-       (compose-fills          (compiled-style-fill          style1)
-                               (compiled-style-fill          style2))
-       (compose-borders        (compiled-style-border        style1)
-                               (compiled-style-border        style2))
-       (compose-alignments     (compiled-style-alignment     style1)
-                               (compiled-style-alignment     style2))
-       (compose-boolean compiled-style-hidden-raw style1 style2)
-       (compose-boolean compiled-style-locked-raw style1 style2))
-      (make-uncompiled-style
-       (lambda (x y)
-         (compose-styles (compile-style style1 x y)
-                         (compile-style style2 x y))))))
+  (cond [(eq? style1 empty-style) style2]
+        [(eq? style2 empty-style) style1]
+        [(and (compiled-style? style1)
+              (compiled-style? style2))
+         (make-compiled-style
+          (compose-number-formats (compiled-style-number-format style1)
+                                  (compiled-style-number-format style2))
+          (compose-fonts          (compiled-style-font          style1)
+                                  (compiled-style-font          style2))
+          (compose-fills          (compiled-style-fill          style1)
+                                  (compiled-style-fill          style2))
+          (compose-borders        (compiled-style-border        style1)
+                                  (compiled-style-border        style2))
+          (compose-alignments     (compiled-style-alignment     style1)
+                                  (compiled-style-alignment     style2))
+          (compose-boolean compiled-style-hidden-raw style1 style2)
+          (compose-boolean compiled-style-locked-raw style1 style2))]
+        [else (make-uncompiled-style
+               (lambda (x y)
+                 (compose-styles (compile-style style1 x y)
+                                 (compile-style style2 x y))))]))
 
 ; compiled-style
 (define empty-style (create-compiled-style))
