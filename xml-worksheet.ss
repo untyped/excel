@@ -79,11 +79,12 @@
                                                   [(? string? str) (xml (c (@ [r ,r] [s ,s] [t "inlineStr"]) (is (t ,str))))]
                                                   [(? symbol? sym) (xml (c (@ [r ,r] [s ,s] [t "inlineStr"]) (is (t ,sym))))]
                                                   [(? bytes?  byt) (xml (c (@ [r ,r] [s ,s] [t "inlineStr"]) (is (t ,byt))))]
-                                                  [(? formula? f)  (xml (c (@ [r ,r] [s ,s])
-                                                                           (f (@ ,@(if (formula-array? f)
-                                                                                       (xml-attrs [t "array"] [aca "true"] [ref ,r])
-                                                                                       (xml-attrs)))
-                                                                              ,(expression->string cache sheet cell x y (formula-expr f)))))])
+                                                  [(? formula? f)  (let ([f-str (expression->string cache sheet cell x y (formula-expr f))])
+                                                                     (if (formula-array? f)
+                                                                         (xml (c (@ [r ,r] [s ,s])
+                                                                                 (f (@ [t "array"] [aca "true"] [ref ,r]) ,f-str)))
+                                                                         (xml (c (@ [r ,r] [s ,s])
+                                                                                 (f ,f-str)))))])
                                                 (xml (c (@ [r ,r] [s ,s]))))))))])
                         (opt-xml (not (andmap xml-empty? cells))
                           ,(let ([ht     (cache-row-height-ref     cache sheet y)]

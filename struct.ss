@@ -190,9 +190,9 @@
         [else           (raise-exn exn:fail:contract
                           (format "Expected (U boolean integer real string symbol), received ~s" val))]))
 
-; cell [boolean] [boolean] -> range-reference
-(define (create-range-reference cell [abs-x? #f] [abs-y? #f])
-  (make-range-reference cell abs-x? abs-y?))
+; cell [boolean] [boolean] [boolean] [boolean] -> range-reference
+(define (create-range-reference cell [abs-x0? #f] [abs-y0? #f] [abs-x1? abs-x0?] [abs-y1? abs-y0?])
+  (make-range-reference cell abs-x0? abs-y0? abs-x1? abs-y1?))
 
 ; expression -> natural
 (define expression-function-nesting-depth
@@ -297,7 +297,7 @@
  [optimize-commutative-function                      (->* (symbol?) () #:rest (listof quotable?) function?)]
  [rename create-array          make-array            (->* () () #:rest (listof quotable?) array?)]
  [rename create-literal        make-literal          (-> literal-value? literal?)]
- [rename create-range-reference make-range-reference (->* (range?) (boolean? boolean?) range-reference?)]
+ [rename create-range-reference make-range-reference (->* (range?) (boolean? boolean? boolean? boolean?) range-reference?)]
  [expression-function-nesting-depth                  (-> expression? natural-number/c)]
  [validate                                           (->* (quotable?)
                                                           (#:error-style (or/c 'stop 'warning 'information)

@@ -79,34 +79,32 @@
 
 ; Range addresses --------------------------------
 
-; range [worksheet] natural natural -> string
-(define range-address
-  (case-lambda
-    [(range x0 y0)
-     (range-address range #f x0 y0)]
-    [(range sheet x0 y0)
-     (let ([w (range-width range)]
-           [h (range-height range)])
-       (if (and (= w 1) (= h 1))
-           (if sheet
-               (sheet+xy->ref sheet x0 y0)
-               (xy->ref x0 y0))
-           (format "~a:~a"
-                   (if sheet
-                       (sheet+xy->ref sheet x0 y0)
-                       (xy->ref x0 y0))
-                   (if sheet
-                       (sheet+xy->ref sheet
-                                      (sub1 (+ x0 w))
-                                      (sub1 (+ y0 h)))
-                       (xy->ref (sub1 (+ x0 w))
-                                (sub1 (+ y0 h)))))))]))
+; range natural natural [boolean] [boolean] [boolean] [boolean] -> string
+(define (range-address range x0 y0 [abs-x0? #f] [abs-y0? #f] [abs-x1? #f] [abs-y1? #f])
+  (range-address/sheet range #f x0 y0 abs-x0? abs-y0? abs-x1? abs-y1?))
 
-; (listof (list range natural natural)) -> string
-(define (range-addresses specs)
-  (string-join (for/list ([spec (in-list specs)])
-                 (apply range-address spec))
-               " "))
+; range (U worksheet #f) natural natural [boolean] [boolean] [boolean] [boolean] -> string
+(define (range-address/sheet range sheet x0 y0 [abs-x0? #f] [abs-y0? #f] [abs-x1? abs-x0?] [abs-y1? abs-y0?])
+  (let ([w (range-width range)]
+        [h (range-height range)])
+    (if (and (= w 1) (= h 1))
+        (if sheet
+            (sheet+xy->ref sheet x0 y0 abs-x0? abs-y0?)
+            (xy->ref x0 y0 abs-x0? abs-y0?))
+        (format "~a:~a"
+                (if sheet
+                    (sheet+xy->ref sheet x0 y0 abs-x0? abs-y0?)
+                    (xy->ref x0 y0 abs-x0? abs-y0?))
+                (if sheet
+                    (sheet+xy->ref sheet
+                                   (sub1 (+ x0 w))
+                                   (sub1 (+ y0 h))
+                                   abs-x1?
+                                   abs-y1?)
+                    (xy->ref (sub1 (+ x0 w))
+                             (sub1 (+ y0 h))
+                             abs-x1?
+                             abs-y1?))))))
 
 ; Helpers ----------------------------------------
 
@@ -123,18 +121,17 @@
 ; Provide statements -----------------------------
 
 (provide/contract
- [xy->ref         (->* (natural-number/c natural-number/c)
-                       (boolean? boolean?)
-                       string?)]
- [sheet+xy->ref   (->* ((or/c worksheet? #f) natural-number/c natural-number/c)
-                       (boolean? boolean?)
-                       string?)]
- [ref->xy         (-> string? (values natural-number/c natural-number/c))]
- [ref->sheet+xy   (-> string? (values (or/c string? #f) natural-number/c natural-number/c))]
- [x->col          (-> natural-number/c string?)]
- [col->x          (-> string? natural-number/c)]
- [y->row          (-> natural-number/c string?)]
- [row->y          (-> string? natural-number/c)]
- [range-address   (case-> (-> range? natural-number/c natural-number/c string?)
-                          (-> range? worksheet? natural-number/c natural-number/c string?))]
- [range-addresses (-> (listof (list/c range? natural-number/c natural-number/c)) string?)])
+ [xy->ref             (->* (natural-number/c natural-number/c)
+                           (boolean? boolean?)
+                           string?)]
+ [sheet+xy->ref       (->* ((or/c worksheet? #f) natural-number/c natural-number/c)
+                           (boolean? boolean?)
+                           string?)]
+ [ref->xy             (-> string? (values natural-number/c natural-number/c))]
+ [ref->sheet+xy       (-> string? (values (or/c string? #f) natural-number/c natural-number/c))]
+ [x->col              (-> natural-number/c string?)]
+ [col->x              (-> string? natural-number/c)]
+ [y->row              (-> natural-number/c string?)]
+ [row->y              (-> string? natural-number/c)]
+ [range-address       (->* (range? natural-number/c natural-number/c) (boolean? boolean? boolean? boolean?) string?)]
+ [range-address/sheet (->* (range? (or/c worksheet? #f) natural-number/c natural-number/c) (boolean? boolean? boolean? boolean?) string?)])

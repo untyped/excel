@@ -2,9 +2,12 @@
 
 (require "base.ss")
 
-(require (unlib-in hash)
+(require (unlib-in hash profile)
          "ref.ss"
          "struct.ss")
+
+(define-timer cache-set-timer)
+(define-timer cache-ref-timer)
 
 ; (struct (hashof (list worksheet natural natural) (list cell style-id)
 ;         (hashof cell (list worksheet natural natural))
@@ -42,91 +45,107 @@
 
 ; cache worksheet natural natural -> cell style-id
 (define (cache-value-ref cache sheet x y)
-  (apply values (hash-ref (cache-value-lookup cache)
-                          (list sheet x y)
-                          (list #f #f))))
+  (with-timer cache-ref-timer
+    (apply values (hash-ref (cache-value-lookup cache)
+                            (list sheet x y)
+                            (list #f #f)))))
 
 ; cache worksheet natural natural cell style-id -> void
 (define (cache-value-set! cache sheet x y cell style-id)
-  (hash-set! (cache-value-lookup cache)
-             (list sheet x y)
-             (list cell style-id)))
+  (with-timer cache-set-timer
+    (hash-set! (cache-value-lookup cache)
+               (list sheet x y)
+               (list cell style-id))))
 
 ; cache range -> worksheet natural natural
 (define (cache-address-ref cache key)
-  (apply values (hash-ref (cache-address-lookup cache) key)))
+  (with-timer cache-ref-timer
+    (apply values (hash-ref (cache-address-lookup cache) key))))
 
 ; cache range (list worksheet natural natural) -> void
 (define (cache-address-set! cache range sheet x y)
-  (hash-set! (cache-address-lookup cache) range (list sheet x y)))
+  (with-timer cache-set-timer
+    (hash-set! (cache-address-lookup cache) range (list sheet x y))))
 
 ; cache (U number-format font fill border compiled-style) [any] -> (U natural any)
 (define cache-style-ref
-  (case-lambda
-    [(cache style)     (hash-ref (cache-style-lookup cache) style)]
-    [(cache style def) (hash-ref (cache-style-lookup cache) style def)]))
+  (with-timer cache-ref-timer
+    (case-lambda
+      [(cache style)     (hash-ref (cache-style-lookup cache) style)]
+      [(cache style def) (hash-ref (cache-style-lookup cache) style def)])))
 
 ; cache (U number-format font fill border compiled-style) natural -> void
 (define (cache-style-set! cache style id)
-  (hash-set! (cache-style-lookup cache) style id))
+  (with-timer cache-set-timer
+    (hash-set! (cache-style-lookup cache) style id)))
 
 ; cache compiled-style [any] -> (U natural any)
 (define cache-diff-style-ref
-  (case-lambda
-    [(cache style)     (hash-ref (cache-diff-style-lookup cache) style)]
-    [(cache style def) (hash-ref (cache-diff-style-lookup cache) style def)]))
+  (with-timer cache-ref-timer
+    (case-lambda
+      [(cache style)     (hash-ref (cache-diff-style-lookup cache) style)]
+      [(cache style def) (hash-ref (cache-diff-style-lookup cache) style def)])))
 
 ; cache ccompiled-style natural -> void
 (define (cache-diff-style-set! cache style id)
-  (hash-set! (cache-diff-style-lookup cache) style id))
+  (with-timer cache-set-timer
+    (hash-set! (cache-diff-style-lookup cache) style id)))
 
 ; cache worksheet natural -> (U real #f)
 (define cache-col-width-ref
-  (case-lambda
-    [(cache sheet index)
-     (let ([key (cons (package-part-id sheet) index)])
-       (hash-ref (cache-col-width-lookup cache) key #f))]))
+  (with-timer cache-ref-timer
+    (case-lambda
+      [(cache sheet index)
+       (let ([key (cons (package-part-id sheet) index)])
+         (hash-ref (cache-col-width-lookup cache) key #f))])))
 
 ; cache worksheet natural real -> void
 (define (cache-col-width-set! cache sheet index width)
-  (let ([key (cons (package-part-id sheet) index)])
-    (hash-set! (cache-col-width-lookup cache) key width)))
+  (with-timer cache-set-timer
+    (let ([key (cons (package-part-id sheet) index)])
+      (hash-set! (cache-col-width-lookup cache) key width))))
 
 ; cache worksheet natural -> (U real #f)
 (define cache-row-height-ref
-  (case-lambda
-    [(cache sheet index)
-     (let ([key (cons (package-part-id sheet) index)])
-       (hash-ref (cache-row-height-lookup cache) key #f))]))
+  (with-timer cache-ref-timer
+    (case-lambda
+      [(cache sheet index)
+       (let ([key (cons (package-part-id sheet) index)])
+         (hash-ref (cache-row-height-lookup cache) key #f))])))
 
 ; cache worksheet natural real -> void
 (define (cache-row-height-set! cache sheet index height)
-  (let ([key (cons (package-part-id sheet) index)])
-    (hash-set! (cache-row-height-lookup cache) key height)))
+  (with-timer cache-set-timer
+    (let ([key (cons (package-part-id sheet) index)])
+      (hash-set! (cache-row-height-lookup cache) key height))))
 
 ; cache worksheet natural -> boolean
 (define cache-col-visibility-ref
-  (case-lambda
-    [(cache sheet index)
-     (let ([key (cons (package-part-id sheet) index)])
-       (hash-ref (cache-col-visibility-lookup cache) key #t))]))
+  (with-timer cache-ref-timer
+    (case-lambda
+      [(cache sheet index)
+       (let ([key (cons (package-part-id sheet) index)])
+         (hash-ref (cache-col-visibility-lookup cache) key #t))])))
 
 ; cache worksheet natural boolean -> void
 (define (cache-col-visibility-set! cache sheet index visibility)
-  (let ([key (cons (package-part-id sheet) index)])
-    (hash-set! (cache-col-visibility-lookup cache) key visibility)))
+  (with-timer cache-set-timer
+    (let ([key (cons (package-part-id sheet) index)])
+      (hash-set! (cache-col-visibility-lookup cache) key visibility))))
 
 ; cache worksheet natural -> boolean
 (define cache-row-visibility-ref
-  (case-lambda
-    [(cache sheet index)
-     (let ([key (cons (package-part-id sheet) index)])
-       (hash-ref (cache-row-visibility-lookup cache) key #t))]))
+  (with-timer cache-ref-timer
+    (case-lambda
+      [(cache sheet index)
+       (let ([key (cons (package-part-id sheet) index)])
+         (hash-ref (cache-row-visibility-lookup cache) key #t))])))
 
 ; cache worksheet natural boolean -> void
 (define (cache-row-visibility-set! cache sheet index visibility)
-  (let ([key (cons (package-part-id sheet) index)])
-    (hash-set! (cache-row-visibility-lookup cache) key visibility)))
+  (with-timer cache-set-timer
+    (let ([key (cons (package-part-id sheet) index)])
+      (hash-set! (cache-row-visibility-lookup cache) key visibility))))
 
 ; Provide statements -----------------------------
 

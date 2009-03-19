@@ -12,8 +12,8 @@
 ; syntax -> syntax
 (define (expand-expression stx)
   (syntax-case* stx (!ref !range !array !apply !cond !this quote unquote) symbolic-identifier=?
-    [(!ref arg ...)              #`(make-range-reference arg ...)]
-    [(!this arg ...)             #`(make-this-reference arg ...)]
+    [(!ref arg ...)              #`(make-range-reference #,@(expand-args #'(arg ...)))]
+    [(!this arg ...)             #`(make-this-reference #,@(expand-args #'(arg ...)))]
     [(!range arg ...)            #`(make-cell-range #,@(expand-args #'(arg ...)))]
     [(!array arg ...)            #`(make-array #,@(expand-args #'(arg ...)))]
     [(!apply op arg ...)         #`(apply #,@(syntax->list (expand-expression #'(op arg ...))))]

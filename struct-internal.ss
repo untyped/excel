@@ -144,8 +144,8 @@
 ; (struct any)
 (define-struct (literal expression) (value) #:transparent)
 
-; (struct cell boolean boolean)
-(define-struct (range-reference expression) (range abs-x? abs-y?) #:transparent)
+; (struct cell boolean boolean boolean boolean)
+(define-struct (range-reference expression) (range abs-x0? abs-y0? abs-x1? abs-y1?) #:transparent)
 
 ; (struct)
 (define-struct (this-reference expression) () #:transparent)
@@ -171,14 +171,14 @@
 (define (quote-expression arg)
   (cond [(formula? arg)       (formula-expr arg)]
         [(expression? arg)    arg]
-        [(range? arg)         (make-range-reference arg #f #f)]
+        [(range? arg)         (make-range-reference arg #f #f #f #f)]
         [(literal-value? arg) (make-literal arg)]))
 
 ; (U formula expression cell literal-value) -> formula
 (define (quote-formula arg)
   (cond [(formula? arg)       arg]
         [(expression? arg)    (make-formula arg #f)]
-        [(range? arg)         (make-formula (make-range-reference arg #f #f) #f)]
+        [(range? arg)         (make-formula (make-range-reference arg #f #f #f #f) #f)]
         [(literal-value? arg) (make-formula (make-literal arg) #f)]))
 
 ; Conditional formatting -------------------------
@@ -265,7 +265,11 @@
  [struct (function expression)        ([name symbol?] [args (listof expression?)])]
  [struct (array expression)           ([data (listof expression?)])]
  [struct (literal expression)         ([value literal-value?])]
- [struct (range-reference expression) ([range range?] [abs-x? boolean?] [abs-y? boolean?])]
+ [struct (range-reference expression) ([range   range?]
+                                       [abs-x0? boolean?]
+                                       [abs-y0? boolean?]
+                                       [abs-x1? boolean?]
+                                       [abs-y1? boolean?])]
  [struct (this-reference expression)  ()]
  [literal-value?                      (-> any/c boolean?)]
  [quotable?                           (-> any/c boolean?)]

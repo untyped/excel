@@ -21,7 +21,8 @@
     [(struct function (name args))                (display-function cache sheet range x y name args out)]
     [(struct literal  (value))                    (display-literal cache sheet range x y value out)]
     [(struct array    (data))                     (display-array cache sheet range x y data out)]
-    [(struct range-reference (cell abs-x? abs-y?)) (display-range-reference cache sheet range x y cell abs-x? abs-y? out)]
+    [(struct range-reference (cell abs-x0? abs-y0?
+                               abs-x1? abs-y1?))  (display-range-reference cache sheet range x y cell abs-x0? abs-y0? abs-x1? abs-y1? out)]
     [(struct this-reference ())                   (display-this-reference cache sheet range x y out)]))
 
 ; cache worksheet range natural natural symbol (listof expression) output-port -> void
@@ -58,12 +59,16 @@
 (define (display-array cache sheet range x y data out)
   (display-infix cache sheet range x y "," data out "{" "}"))
 
-; cache worksheet range natural natural cell boolean boolean output-port -> void
-(define (display-range-reference cache sheet my-range my-x my-y range abs-x? abs-y? out)
+; cache worksheet range natural natural cell boolean boolean boolean boolean output-port -> void
+(define (display-range-reference cache sheet my-range my-x my-y range abs-x0? abs-y0? abs-x1? abs-y1? out)
   (let-values ([(other-sheet x y) (cache-address-ref cache range)])
-    (if (eq? sheet other-sheet)
-        (display (range-address range x y) out)
-        (display (range-address range other-sheet x y) out))))
+    (display (range-address/sheet
+              range
+              (and (not (eq? sheet other-sheet)) other-sheet)
+              x y
+              abs-x0? abs-y0?
+              abs-x1? abs-y1?)
+             out)))
 
 ; cache worksheet range natural natural output-port -> void
 (define (display-this-reference cache sheet range x y out)
