@@ -11,7 +11,7 @@
 
 ; syntax -> syntax
 (define (expand-expression stx)
-  (syntax-case* stx (!ref !range !array !apply !cond !this quote unquote) symbolic-identifier=?
+  (syntax-case* stx (!ref !range !array !apply !cond !this !raw quote unquote) symbolic-identifier=?
     [(!ref arg ...)              #`(make-range-reference #,@(expand-args #'(arg ...)))]
     [(!this arg ...)             #`(make-this-reference #,@(expand-args #'(arg ...)))]
     [(!range arg ...)            #`(make-cell-range #,@(expand-args #'(arg ...)))]
@@ -24,6 +24,7 @@
                                        #,(expand-expression #'arg0)
                                        #,(expand-expression #'(!cond [test arg] ...)))]
     [(!cond arg ...)             (raise-syntax-error #f "bad syntax" stx)]
+    [(!raw val)                  #'(make-raw-expression val)]
     [(quote arg)                 #'(quote arg)]
     [(quote arg ...)             (raise-syntax-error #f "one argument only" stx)]
     [(unquote expr)              #'expr]

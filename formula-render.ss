@@ -23,7 +23,8 @@
     [(struct array    (data))                     (display-array cache sheet range x y data out)]
     [(struct range-reference (cell abs-x0? abs-y0?
                                abs-x1? abs-y1?))  (display-range-reference cache sheet range x y cell abs-x0? abs-y0? abs-x1? abs-y1? out)]
-    [(struct this-reference ())                   (display-this-reference cache sheet range x y out)]))
+    [(struct this-reference ())                   (display-this-reference cache sheet range x y out)]
+    [(struct raw-expression (text))               (display text out)]))
 
 ; cache worksheet range natural natural symbol (listof expression) output-port -> void
 (define (display-operator cache sheet range x y name args out)

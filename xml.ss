@@ -36,14 +36,24 @@
 
 ; workbook -> xml
 (define (workbook-xml book)
-  (xml ,standalone-header-xml
-       (workbook (@ [xmlns   ,spreadsheetml-namespace]
-                    [xmlns:r ,workbook-namespace])
-                 (sheets ,@(for/list ([sheet (in-list (workbook-sheets book))]
-                                      [index (in-naturals 1)])
-                             (xml (sheet (@ [name    ,(worksheet-name sheet)]
-                                            [sheetId ,index]
-                                            [r:id    ,(package-part-id sheet)]))))))))
+  (let ([area   (workbook-print-area book)]
+        [titles (workbook-print-titles book)])
+    (xml ,standalone-header-xml
+         (workbook (@ [xmlns   ,spreadsheetml-namespace]
+                      [xmlns:r ,workbook-namespace])
+                   (sheets ,@(for/list ([sheet (in-list (workbook-sheets book))]
+                                        [index (in-naturals 1)])
+                               (xml (sheet (@ [name    ,(worksheet-name sheet)]
+                                              [sheetId ,index]
+                                              [r:id    ,(package-part-id sheet)])))))
+                   ,(opt-xml (or area titles)
+                      ,(xml (definedNames
+                              ,(opt-xml area
+                                 (definedName (@ [name "_xlnm.Print_Area"] [localSheetId 0])
+                                   ,(coord-address area))
+                              ,(opt-xml titles
+                                 (definedName (@ [name "_xlnm.Print_Titles"] [localSheetId 0])
+                                   ,(coord-address titles)))))))))))
 
 ; workbook -> xml
 (define workbook-relationships-xml

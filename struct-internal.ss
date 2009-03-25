@@ -13,8 +13,8 @@
 ; (struct symbol)
 (define-struct (package-part data) (id) #:transparent)
 
-; (struct symbol (listof worksheet))
-(define-struct (workbook package-part) (sheets) #:transparent)
+; (struct symbol (listof worksheet) (U coord-reference #f) (U coord-reference #f))
+(define-struct (workbook package-part) (sheets print-area print-titles) #:transparent)
 
 ; (struct symbol
 ;         (U string #f) 
@@ -60,9 +60,11 @@
 ;         (U natural #f)
 ;         (U 'portrait 'landscape)
 ;         (U string #f)
-;         (U string #f))
+;         (U string #f)
+;         boolean
+;         boolean)
 (define-struct print-settings
-  (fit-to-width fit-to-height orientation headers footers)
+  (fit-to-width fit-to-height orientation headers footers horizontal-centered? vertical-centered?)
   #:transparent)
 
 ; (struct style (U validation-rule #f) (listof conditional-format))
@@ -144,11 +146,17 @@
 ; (struct any)
 (define-struct (literal expression) (value) #:transparent)
 
+; (struct worksheet integer integer integer integer boolean boolean boolean boolean boolean)
+(define-struct (coord-reference expression) (sheet x y width height abs-x0? abs-y0? abs-x1? abs-y1? force-range?) #:transparent)
+
 ; (struct cell boolean boolean boolean boolean)
 (define-struct (range-reference expression) (range abs-x0? abs-y0? abs-x1? abs-y1?) #:transparent)
 
 ; (struct)
 (define-struct (this-reference expression) () #:transparent)
+
+; (struct string)
+(define-struct (raw-expression expression) (text) #:transparent)
 
 ; Quoting ----------------------------------------
 
@@ -197,7 +205,9 @@
  [struct data                         ()]
  [struct package-part                 ([id                            symbol?])]
  [struct (workbook package-part)      ([id                            symbol?]
-                                       [sheets                        (listof worksheet?)])]
+                                       [sheets                        (listof worksheet?)]
+                                       [print-area                    (or/c coord-reference? #f)]
+                                       [print-titles                  (or/c coord-reference? #f)])]
  [struct (worksheet package-part)     ([id                            symbol?]
                                        [name                          (string-length/c 31)]
                                        [data                          range?]
@@ -231,7 +241,9 @@
                                        [fit-to-height                 (or/c (and/c integer? (>=/c 1)) #f)]
                                        [orientation                   (or/c 'portrait 'landscape)]
                                        [headers                       (or/c string? #f)]
-                                       [footers                       (or/c string? #f)])]
+                                       [footers                       (or/c string? #f)]
+                                       [horizontal-centered?          boolean?]
+                                       [vertical-centered?            boolean?])]
  [struct (range data)                 ([style                         style?]
                                        [validation-rule               (or/c validation-rule? #f)]
                                        [conditional-formats           (listof conditional-format?)])]
@@ -265,12 +277,23 @@
  [struct (function expression)        ([name symbol?] [args (listof expression?)])]
  [struct (array expression)           ([data (listof expression?)])]
  [struct (literal expression)         ([value literal-value?])]
+ [struct (coord-reference expression) ([sheet   worksheet?]
+                                       [x       (or/c natural-number/c #f)]
+                                       [y       (or/c natural-number/c #f)]
+                                       [width   (or/c natural-number/c #f)]
+                                       [height  (or/c natural-number/c #f)]
+                                       [abs-x0? boolean?]
+                                       [abs-y0? boolean?]
+                                       [abs-x1? boolean?]
+                                       [abs-y1? boolean?]
+                                       [force-range? boolean?])]
  [struct (range-reference expression) ([range   range?]
                                        [abs-x0? boolean?]
                                        [abs-y0? boolean?]
                                        [abs-x1? boolean?]
                                        [abs-y1? boolean?])]
  [struct (this-reference expression)  ()]
+ [struct (raw-expression expression)  ([text    string?])]
  [literal-value?                      (-> any/c boolean?)]
  [quotable?                           (-> any/c boolean?)]
  [quote-expression                    (-> quotable? expression?)]
@@ -280,7 +303,7 @@
                                        [priority                      natural-number/c])]
  [struct validation-rule              ([formula                       formula?]
                                        [error-style                   (or/c 'stop 'warning 'information)]
-                                       [error-title                   (or/c string? #f)]
-                                       [error-message                 (or/c string? #f)]
-                                       [prompt-title                  (or/c string? #f)]
-                                       [prompt-message                (or/c string? #f)])])
+                                       [error-title                   (or/c (string-length/c 256) #f)]    ; optimistic estimate
+                                       [error-message                 (or/c (string-length/c 256) #f)]    ; rough estimate
+                                       [prompt-title                  (or/c (string-length/c 256) #f)]    ; optimistic estimate
+                                       [prompt-message                (or/c (string-length/c 256) #f)])]) ; rough estimate

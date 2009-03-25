@@ -7,15 +7,13 @@
 
 ; Basic conversion procedures --------------------
 
-; natural natural [boolean] [boolean] -> string
+; (U natural #f) (U natural #f) [boolean] [boolean] -> string
 (define (xy->ref x y [absolute-x? #f] [absolute-y? #f])
-  (format "~a~a~a~a"
-          (if absolute-x? "$" "")
-          (x->col x) 
-          (if absolute-y? "$" "")
-          (add1 y)))
+  (string-append
+   (if x (string-append (if absolute-x? "$" "") (x->col x)) "")
+   (if y (string-append (if absolute-y? "$" "") (number->string (add1 y))) "")))
 
-; (U worksheet #f) natural natural [boolean] [boolean] -> string
+; (U worksheet #f) (U natural #f) (U natural #f) [boolean] [boolean] -> string
 (define (sheet+xy->ref sheet x y [absolute-x? #f] [absolute-y? #f])
   (if sheet
       (format "~a!~a" (escape-worksheet-name (worksheet-name sheet)) (xy->ref x y absolute-x? absolute-y?))
@@ -79,32 +77,38 @@
 
 ; Range addresses --------------------------------
 
+; coord-reference -> string
+(define (coord-address coord)
+  (full-address (coord-reference-sheet coord)
+                (coord-reference-x coord)
+                (coord-reference-y coord)
+                (coord-reference-width coord)
+                (coord-reference-height coord)
+                (coord-reference-abs-x0? coord)
+                (coord-reference-abs-y0? coord)
+                (coord-reference-abs-x1? coord)
+                (coord-reference-abs-y1? coord)
+                (coord-reference-force-range? coord)))
+
 ; range natural natural [boolean] [boolean] [boolean] [boolean] -> string
 (define (range-address range x0 y0 [abs-x0? #f] [abs-y0? #f] [abs-x1? #f] [abs-y1? #f])
-  (range-address/sheet range #f x0 y0 abs-x0? abs-y0? abs-x1? abs-y1?))
+  (full-address #f x0 y0 (range-width range) (range-height range) abs-x0? abs-y0? abs-x1? abs-y1?))
 
 ; range (U worksheet #f) natural natural [boolean] [boolean] [boolean] [boolean] -> string
 (define (range-address/sheet range sheet x0 y0 [abs-x0? #f] [abs-y0? #f] [abs-x1? abs-x0?] [abs-y1? abs-y0?])
-  (let ([w (range-width range)]
-        [h (range-height range)])
-    (if (and (= w 1) (= h 1))
-        (if sheet
-            (sheet+xy->ref sheet x0 y0 abs-x0? abs-y0?)
-            (xy->ref x0 y0 abs-x0? abs-y0?))
+  (full-address sheet x0 y0 (range-width range) (range-height range) abs-x0? abs-y0? abs-x1? abs-y1?))
+
+; (U worksheet #f) (U natural #f) (U natural #f) (U natural #f) (U natural #f) [boolean] [boolean] [boolean] [boolean] [boolean] -> string
+(define (full-address sheet x0 y0 w h [abs-x0? #f] [abs-y0? #f] [abs-x1? abs-x0?] [abs-y1? abs-y0?] [force-range? #f])
+  (let ([w (or w 1)] [h (or h 1)])
+    (if (and (not force-range?) (= w 1) (= h 1))
+        (sheet+xy->ref sheet x0 y0 abs-x0? abs-y0?)
         (format "~a:~a"
-                (if sheet
-                    (sheet+xy->ref sheet x0 y0 abs-x0? abs-y0?)
-                    (xy->ref x0 y0 abs-x0? abs-y0?))
-                (if sheet
-                    (sheet+xy->ref sheet
-                                   (sub1 (+ x0 w))
-                                   (sub1 (+ y0 h))
-                                   abs-x1?
-                                   abs-y1?)
-                    (xy->ref (sub1 (+ x0 w))
-                             (sub1 (+ y0 h))
-                             abs-x1?
-                             abs-y1?))))))
+                (sheet+xy->ref sheet x0 y0 abs-x0? abs-y0?)
+                (xy->ref (and x0 (sub1 (+ x0 w)))
+                         (and y0 (sub1 (+ y0 h)))
+                         abs-x1?
+                         abs-y1?)))))
 
 ; Helpers ----------------------------------------
 
@@ -133,5 +137,32 @@
  [col->x              (-> string? natural-number/c)]
  [y->row              (-> natural-number/c string?)]
  [row->y              (-> string? natural-number/c)]
- [range-address       (->* (range? natural-number/c natural-number/c) (boolean? boolean? boolean? boolean?) string?)]
- [range-address/sheet (->* (range? (or/c worksheet? #f) natural-number/c natural-number/c) (boolean? boolean? boolean? boolean?) string?)])
+ [coord-address       (-> coord-reference? string?)]
+ [range-address       (->* (range?
+                            natural-number/c
+                            natural-number/c)
+                           (boolean?
+                            boolean?
+                            boolean?
+                            boolean?)
+                           string?)]
+ [range-address/sheet (->* (range?
+                            (or/c worksheet? #f)
+                            natural-number/c
+                            natural-number/c)
+                           (boolean?
+                            boolean?
+                            boolean?
+                            boolean?)
+                           string?)]
+ [full-address        (->* ((or/c worksheet? #f)
+                            (or/c natural-number/c #f)
+                            (or/c natural-number/c #f)
+                            (or/c natural-number/c #f)
+                            (or/c natural-number/c #f))
+                           (boolean?
+                            boolean?
+                            boolean?
+                            boolean?
+                            boolean?)
+                           string?)])

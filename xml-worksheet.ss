@@ -19,6 +19,7 @@
                   ,(sheet-protection-xml cache sheet)
                   ,(auto-filter-xml cache sheet)
                   ,(cf+validation-xml cache sheet)
+                  ,(print-options-xml cache sheet)
                   ,(print-settings-xml cache sheet))))
 
 ; cache worksheet -> xml
@@ -156,18 +157,26 @@
 
 ; cache worksheet -> xml
 (define (print-settings-xml cache sheet)
-  (let ([settings (worksheet-print-settings sheet)])
-    (opt-xml settings
-      ,(match settings
-         [(struct print-settings (fitToWidth fitToHeight orientation headers footers))
-          (xml (pageSetup (@ [paperSize 0] ; A4
-                             ,(opt-xml-attr fitToWidth)
-                             ,(opt-xml-attr fitToHeight)
-                             ,(opt-xml-attr orientation)
-                             [horizontalDpi 4294967292]   ; 2^32 - 4 ; goodness knows why
-                             [verticalDpi   4294967292])) ; 2^32 - 4 ; goodness knows why
-               (headerFooter (oddHeader ,headers)
-                             (oddFooter ,footers)))]))))
+  (match (worksheet-print-settings sheet)
+    [(struct print-settings (fitToWidth fitToHeight orientation headers footers _ _))
+     (xml (pageSetup (@ [paperSize 0] ; A4
+                        ,(opt-xml-attr fitToWidth)
+                        ,(opt-xml-attr fitToHeight)
+                        ,(opt-xml-attr orientation)
+                        [horizontalDpi 4294967292]   ; 2^32 - 4 ; goodness knows why
+                        [verticalDpi   4294967292])) ; 2^32 - 4 ; goodness knows why
+          (headerFooter (oddHeader ,headers)
+                        (oddFooter ,footers)))]
+    [#f (xml)]))
+
+; cache worksheet -> xml
+(define (print-options-xml cache sheet)
+  (match (worksheet-print-settings sheet)
+    [(struct print-settings (fitToWidth fitToHeight orientation headers footers horizontalCentered verticalCentered))
+     (opt-xml (or horizontalCentered verticalCentered)
+       (printOptions (@ ,(opt-xml-attr horizontalCentered horizontalCentered "true")
+                        ,(opt-xml-attr verticalCentered verticalCentered "true"))))]
+    [#f (xml)]))
 
 ; cache worksheet range natural natural -> xml
 (define (conditional-format-xml cache sheet range x0 y0)

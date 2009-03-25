@@ -2,16 +2,28 @@
 
 (require "base.ss")
 
-(require (unlib-in hash symbol)
+(require (unlib-in hash string symbol)
          "ref.ss"
          "struct-internal.ss"
          "struct-style.ss")
 
 ; Workbook wrappers ------------------------------
 
-; [#:id symbol] (listof worksheet) ->  workbook
-(define (create-workbook #:id [id (gensym/interned 'book)] [sheets null])
-  (make-workbook id sheets))
+;  [#:id symbol]
+;  (listof worksheet)
+;  [#:print-area   (U coord-reference #f)]
+;  [#:print-titles (U coord-reference #f)]
+; ->
+;  workbook
+(define (create-workbook #:id [id (gensym/interned 'book)]
+                         [sheets null]
+                         #:print-area   [print-area   #f]
+                         #:print-titles [print-titles #f])
+  (make-workbook 
+   id
+   sheets
+   print-area
+   print-titles))
 
 ; Worksheet wrappers -----------------------------
 
@@ -71,25 +83,31 @@
                   sheet-lock?
                   sort-lock?))
 
-;  [#:fit-to-width  (U natural>=1 #f)]
-;  [#:fit-to-height (U natural>=1 #f)]
-;  [#:orientation   (U 'portrait 'landscape)]
-;  [#:headers       (U string #f)]
-;  [#:footers       (U string #f)]
+;  [#:fit-to-width         (U natural>=1 #f)]
+;  [#:fit-to-height        (U natural>=1 #f)]
+;  [#:orientation          (U 'portrait 'landscape)]
+;  [#:headers              (U string #f)]
+;  [#:footers              (U string #f)]
+;  [#:horizontal-centered? boolean]
+;  [#:vertical-centered?   boolean]
 ; ->
 ;  print-settings
 (define (create-print-settings
-         #:fit-to-width  [fit-to-width  #f]
-         #:fit-to-height [fit-to-height #f]
-         #:orientation   [orientation   'portrait]
-         #:headers       [headers       #f]
-         #:footers       [footers       #f])
+         #:fit-to-width         [fit-to-width         #f]
+         #:fit-to-height        [fit-to-height        #f]
+         #:orientation          [orientation          'portrait]
+         #:headers              [headers              #f]
+         #:footers              [footers              #f]
+         #:horizontal-centered? [horizontal-centered? #f]
+         #:vertical-centered?   [vertical-centered?   #f])
   (make-print-settings
    fit-to-width
    fit-to-height
    orientation
    headers
-   footers))
+   footers
+   horizontal-centered?
+   vertical-centered?))
 
 ; Range wrappers ---------------------------------
 
@@ -190,6 +208,10 @@
         [else           (raise-exn exn:fail:contract
                           (format "Expected (U boolean integer real string symbol), received ~s" val))]))
 
+; (U worksheet #f) natural natural [natural] [natural] [boolean] [boolean] [boolean] [boolean] [boolean] -> coord-reference
+(define (create-coord-reference sheet x y [width 1] [height 1] [abs-x0? #f] [abs-y0? #f] [abs-x1? abs-x0?] [abs-y1? abs-y0?] [force-range? #f])
+  (make-coord-reference sheet x y width height abs-x0? abs-y0? abs-x1? abs-y1? force-range?))
+
 ; cell [boolean] [boolean] [boolean] [boolean] -> range-reference
 (define (create-range-reference cell [abs-x0? #f] [abs-y0? #f] [abs-x1? abs-x0?] [abs-y1? abs-y0?])
   (make-range-reference cell abs-x0? abs-y0? abs-x1? abs-y1?))
@@ -243,12 +265,18 @@
                      make-operator
                      make-function
                      make-array
+                     make-coord-reference
                      make-range-reference
                      make-literal)
          (all-from-out "struct-style.ss"))
 
 (provide/contract
- [rename create-workbook       make-workbook         (->* () (#:id symbol? (listof worksheet?)) workbook?)]
+ [rename create-workbook       make-workbook         (->* ()
+                                                          (#:id symbol?
+                                                                (listof worksheet?)
+                                                                #:print-area   (or/c coord-reference? #f)
+                                                                #:print-titles (or/c coord-reference? #f))
+                                                          workbook?)]
  [rename create-worksheet      make-worksheet        (->* (string? range?)
                                                           (#:id symbol?
                                                                 #:split                         (or/c split? #f)
@@ -273,10 +301,12 @@
                                                           worksheet?)]
  [rename create-print-settings make-print-settings   (->* ()
                                                           (#:fit-to-width (or/c (and/c integer? (>=/c 1)) #f)
-                                                                          #:fit-to-height (or/c (and/c integer? (>=/c 1)) #f)
-                                                                          #:orientation   (or/c 'portrait 'landscape)
-                                                                          #:headers       (or/c string? #f)
-                                                                          #:footers       (or/c string? #f))
+                                                                          #:fit-to-height        (or/c (and/c integer? (>=/c 1)) #f)
+                                                                          #:orientation          (or/c 'portrait 'landscape)
+                                                                          #:headers              (or/c string? #f)
+                                                                          #:footers              (or/c string? #f)
+                                                                          #:horizontal-centered? boolean?
+                                                                          #:vertical-centered?   boolean?)
                                                           print-settings?)]
  [rename create-union          make-union            (->* ((listof part?) natural-number/c natural-number/c)
                                                           (style? #:validate (or/c validation-rule? #f) #:cf (listof conditional-format?))
@@ -297,12 +327,23 @@
  [optimize-commutative-function                      (->* (symbol?) () #:rest (listof quotable?) function?)]
  [rename create-array          make-array            (->* () () #:rest (listof quotable?) array?)]
  [rename create-literal        make-literal          (-> literal-value? literal?)]
+ [rename create-coord-reference make-coord-reference (->* ((or/c worksheet? #f)
+                                                           (or/c natural-number/c #f)
+                                                           (or/c natural-number/c #f))
+                                                          ((or/c natural-number/c #f)
+                                                           (or/c natural-number/c #f)
+                                                           boolean?
+                                                           boolean?
+                                                           boolean?
+                                                           boolean?
+                                                           boolean?)
+                                                          coord-reference?)]
  [rename create-range-reference make-range-reference (->* (range?) (boolean? boolean? boolean? boolean?) range-reference?)]
  [expression-function-nesting-depth                  (-> expression? natural-number/c)]
  [validate                                           (->* (quotable?)
                                                           (#:error-style (or/c 'stop 'warning 'information)
-                                                                         #:error-title    (or/c string? #f)
-                                                                         #:error-message  (or/c string? #f)
-                                                                         #:prompt-title   (or/c string? #f)
-                                                                         #:prompt-message (or/c string? #f))
+                                                                         #:error-title    (or/c (string-length/c 256) #f)  ; optimistic estimate
+                                                                         #:error-message  (or/c (string-length/c 256) #f)  ; rough estimate
+                                                                         #:prompt-title   (or/c (string-length/c 256) #f)  ; optimistic estimate
+                                                                         #:prompt-message (or/c (string-length/c 256) #f)) ; rough estimate
                                                           validation-rule?)])
