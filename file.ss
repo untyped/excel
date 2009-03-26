@@ -13,8 +13,6 @@
          "struct.ss"
          "xml.ss")
 
-(define-timer zip-timer)
-(define-timer write-files-timer)
 (define-timer calc-styles-timer)
 (define-timer calc-sheets-timer)
 
@@ -48,13 +46,13 @@
          (make-directory* (build-path "xl/_rels"))
          (make-directory* (build-path "xl/worksheets"))
          (let ([args (list* zip-path
-                            (profile write-files-timer write-xml-file (content-types-path)               (content-types-xml book))
-                            (profile write-files-timer write-xml-file (package-relationships-path)       (package-relationships-xml book))
-                            (profile write-files-timer write-xml-file (package-part-path book)           (workbook-xml book))
-                            (profile write-files-timer write-xml-file (workbook-relationships-path book) (workbook-relationships-xml book))
-                            (profile write-files-timer write-xml-file (stylesheet-path book)             (profile calc-styles-timer stylesheet-xml! cache book))
+                            (write-xml-file (content-types-path)               (content-types-xml book))
+                            (write-xml-file (package-relationships-path)       (package-relationships-xml book))
+                            (write-xml-file (package-part-path book)           (workbook-xml book))
+                            (write-xml-file (workbook-relationships-path book) (workbook-relationships-xml book))
+                            (write-xml-file (stylesheet-path book)             (profile calc-styles-timer stylesheet-xml! cache book))
                             (for/list ([sheet (in-list (workbook-sheets book))])
-                              (profile write-files-timer write-xml-file (package-part-path sheet) (profile calc-sheets-timer worksheet-xml cache sheet))))])
+                              (write-xml-file (package-part-path sheet) (profile calc-sheets-timer worksheet-xml cache sheet))))])
            (unless (apply zip/system temp-dir args)
              (error (format "zip command failed: zip ~a" (string-join (map path->string args) " ")))))))
      (unless (file-exists? zip-path)
