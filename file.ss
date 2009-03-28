@@ -65,8 +65,8 @@
 
 ; path ... -> boolean
 (define (zip/system dir . paths)
-  (let/debug ([cmd-line (format "zip ~a" (string-join (map (cut format "~s" <>) (map path->string paths)) " "))])
-             (system cmd-line)))
+  (let ([cmd-line (format "zip -q ~a" (string-join (map (cut format "~s" <>) (map path->string paths)) " "))])
+    (system cmd-line)))
 
 ; -> path
 (define (make-temp-dir-path)
