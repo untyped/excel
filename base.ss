@@ -10,7 +10,7 @@
          scheme/path
          srfi/19
          srfi/26
-         (planet untyped/mirrors:1)
+         (planet untyped/mirrors:2)
          (planet untyped/unlib:3/debug)
          (planet untyped/unlib:3/exn))
 
@@ -27,7 +27,7 @@
                        scheme/path
                        srfi/19
                        srfi/26
-                       (planet untyped/mirrors:1)
+                       (planet untyped/mirrors:2)
                        (planet untyped/unlib:3/debug)
                        (planet untyped/unlib:3/exn)))
 
