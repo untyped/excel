@@ -1,7 +1,7 @@
 #lang scheme/base
 
 (require scheme/contract
-         (only-in (planet dherman/javascript:8/ast)
+         (only-in (planet dherman/javascript:9:2/ast)
                   prefix-operators
                   postfix-operators
                   infix-operators
