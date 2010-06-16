@@ -3,7 +3,7 @@
 (define name "Excel API")
 
 (define blurb 
-  '((p "Write Excel Open XML files (" (tt ".xslx") " extension) using Scheme.")))
+  '((p "Write Excel Open XML files (" (tt ".xslx") " extension).")))
 
 (define release-notes
   '((p "Initial release.")))
@@ -20,3 +20,9 @@
 (define required-core-version "4.1.3")
 
 (define repositories '("4.x"))
+
+(define compile-omit-paths
+  '("autoplanet.ss"
+    "build.ss"
+    "planet"
+    "planetdev"))
