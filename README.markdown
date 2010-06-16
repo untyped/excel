@@ -3,7 +3,7 @@ Excel API
 
 Developed by Untyped.
 
-Excel Open XML library for [Racket][1].
+Write Excel Open XML files (.xslx extension) in [Racket][1].
 
 Copyright 2006 to 2010 Untyped.
 
